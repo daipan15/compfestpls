@@ -19,19 +19,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Set CORS origins
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-    "*"  # Accept Vercel dynamic domains in development
-]
-
+# Set CORS origins to allow any domain in production/development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
