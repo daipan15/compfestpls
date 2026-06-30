@@ -12,11 +12,13 @@ from app.core.security import hash_password
 Base.metadata.create_all(bind=engine)
 
 
-def get_or_create_user(db, username, email, password, roles):
+def get_or_create_user(db, username, email, password, roles, name=None):
     user = db.query(models.User).filter(models.User.username == username).first()
     if user:
         return user
-    user = models.User(username=username, email=email, password_hash=hash_password(password))
+    if not name:
+        name = username.capitalize()
+    user = models.User(username=username, email=email, password_hash=hash_password(password), name=name)
     db.add(user)
     db.flush()
     for r in roles:
@@ -31,11 +33,11 @@ def main():
     db = SessionLocal()
     
     # Create demo accounts
-    admin = get_or_create_user(db, "admin", "admin@demo.com", "Admin123!", ["admin"])
-    seller = get_or_create_user(db, "seller1", "seller1@demo.com", "Seller123!", ["seller"])
-    buyer = get_or_create_user(db, "buyer1", "buyer1@demo.com", "Buyer123!", ["buyer"])
-    driver = get_or_create_user(db, "driver1", "driver1@demo.com", "Driver123!", ["driver"])
-    multiuser = get_or_create_user(db, "multiuser", "multiuser@demo.com", "Multi123!", ["buyer", "seller"])
+    admin = get_or_create_user(db, "admin", "admin@demo.com", "Admin123!", ["admin"], name="Admin System")
+    seller = get_or_create_user(db, "seller1", "seller1@demo.com", "Seller123!", ["seller"], name="Seller Demo")
+    buyer = get_or_create_user(db, "buyer1", "buyer1@demo.com", "Buyer123!", ["buyer"], name="Buyer Demo")
+    driver = get_or_create_user(db, "driver1", "driver1@demo.com", "Driver123!", ["driver"], name="Kurir / Driver")
+    multiuser = get_or_create_user(db, "multiuser", "multiuser@demo.com", "Multi123!", ["buyer", "seller"], name="Multi-Role User")
 
     # Create store for seller1
     store = db.query(models.Store).filter(models.Store.name == "Seapedia Electro").first()
@@ -57,13 +59,13 @@ def main():
     if not db.query(models.Voucher).filter(models.Voucher.code == "SEAPEDIA10").first():
         db.add(models.Voucher(
             code="SEAPEDIA10", discount_type=models.DiscountTypeEnum.percent, value=10, max_discount=20000,
-            expiry_date=dt.datetime.utcnow() + dt.timedelta(days=30), usage_limit=100, usage_count=0,
+            expiry_date=dt.datetime.utcnow() + dt.timedelta(hours=7) + dt.timedelta(days=30), usage_limit=100, usage_count=0,
         ))
 
     if not db.query(models.Promo).filter(models.Promo.code == "PROMOAWAL").first():
         db.add(models.Promo(
             code="PROMOAWAL", discount_type=models.DiscountTypeEnum.fixed, value=15000,
-            expiry_date=dt.datetime.utcnow() + dt.timedelta(days=30),
+            expiry_date=dt.datetime.utcnow() + dt.timedelta(hours=7) + dt.timedelta(days=30),
         ))
 
     db.commit()

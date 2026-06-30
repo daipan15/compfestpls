@@ -99,6 +99,19 @@ function AppContent() {
   // Clock widget collapse
   const [clockCollapsed, setClockCollapsed] = useState(false);
 
+  const setDefaultTab = (role) => {
+    if (role === 'driver') {
+      setActiveTab('driver-jobs');
+    } else if (role === 'seller') {
+      setActiveTab('inventory');
+    } else if (role === 'admin') {
+      setActiveTab('analytics');
+    } else {
+      setActiveTab('shop');
+    }
+    setSelectedProductId(null);
+  };
+
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     if (isSignUp) {
@@ -106,13 +119,26 @@ function AppContent() {
         showNotification("Harap isi semua kolom pendaftaran.");
         return;
       }
-      await register(authName, authUsername, authEmail, authPassword, authRoles);
+      const profile = await register(authName, authUsername, authEmail, authPassword, authRoles);
+      if (profile) {
+        setDefaultTab(profile.role);
+      }
     } else {
       if (!authUsername || !authPassword) {
         showNotification("Harap isi username dan password.");
         return;
       }
-      await login(authUsername, authPassword);
+      const profile = await login(authUsername, authPassword);
+      if (profile) {
+        setDefaultTab(profile.role);
+      }
+    }
+  };
+
+  const handleDemoLogin = async (u) => {
+    const profile = await login(u.username, u.password);
+    if (profile) {
+      setDefaultTab(profile.role);
     }
   };
 
@@ -135,37 +161,63 @@ function AppContent() {
         justifyContent: 'center',
         minHeight: '100vh',
         background: '#090d16',
-        backgroundImage: 'radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.15) 0px, transparent 50%)',
-        padding: '20px'
+        backgroundImage: 'radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 40%), radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.08), transparent 40%)',
+        padding: '24px'
       }}>
-        <div className="card" style={{ width: '450px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <h2 style={{ marginBottom: '8px', textAlign: 'center', fontFamily: 'var(--font-heading)' }} className="text-gradient">
-            Bazaar CompFest
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px', textAlign: 'center' }}>
-            {isSignUp ? 'Buat akun pasar digital baru Anda' : 'Masuk ke dalam dashboard transaksi marketplace'}
-          </p>
+        <div className="card" style={{ width: '420px', padding: '36px', borderRadius: '16px', background: 'rgba(21, 30, 48, 0.4)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5)' }}>
+          
+          {/* Logo and Header */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', marginBottom: '16px' }}>
+              <ShoppingBag size={24} color="var(--color-primary)" />
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '6px', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Bazaar CompFest
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center' }}>
+              Platform transaksi digital & marketplace terintegrasi
+            </p>
+          </div>
 
+          {/* Segment Control Tab Switcher */}
+          <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+            <button 
+              type="button" 
+              onClick={() => setIsSignUp(false)} 
+              style={{ flex: 1, padding: '8px 12px', border: 'none', background: !isSignUp ? 'rgba(255,255,255,0.06)' : 'transparent', color: !isSignUp ? '#fff' : 'var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', transition: 'all 0.2s' }}
+            >
+              Masuk
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setIsSignUp(true)} 
+              style={{ flex: 1, padding: '8px 12px', border: 'none', background: isSignUp ? 'rgba(255,255,255,0.06)' : 'transparent', color: isSignUp ? '#fff' : 'var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', transition: 'all 0.2s' }}
+            >
+              Daftar Akun
+            </button>
+          </div>
+
+          {/* Auth Form */}
           <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {isSignUp && (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Nama Lengkap</label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Nama Lengkap</label>
                   <input 
                     type="text" 
-                    className="input" 
-                    placeholder="Contoh: John Doe" 
+                    className="form-control" 
+                    placeholder="Masukkan nama lengkap Anda" 
                     value={authName}
                     onChange={(e) => setAuthName(e.target.value)}
                     required
                   />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Email</label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Email</label>
                   <input 
                     type="email" 
-                    className="input" 
-                    placeholder="Contoh: johndoe@domain.com" 
+                    className="form-control" 
+                    placeholder="name@domain.com" 
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
                     required
@@ -174,11 +226,11 @@ function AppContent() {
               </>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Username</label>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Username</label>
               <input 
                 type="text" 
-                className="input" 
+                className="form-control" 
                 placeholder="Masukkan username" 
                 value={authUsername}
                 onChange={(e) => setAuthUsername(e.target.value)}
@@ -186,11 +238,11 @@ function AppContent() {
               />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Password</label>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Password</label>
               <input 
                 type="password" 
-                className="input" 
+                className="form-control" 
                 placeholder="Masukkan password" 
                 value={authPassword}
                 onChange={(e) => setAuthPassword(e.target.value)}
@@ -200,8 +252,8 @@ function AppContent() {
 
             {isSignUp && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Pilih Peran Akun (Multi-role didukung)</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Peran Akun (Dukungan Multi-role)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   {['buyer', 'seller', 'driver'].map((role) => {
                     const active = authRoles.includes(role);
                     return (
@@ -210,7 +262,7 @@ function AppContent() {
                         key={role}
                         onClick={() => handleRoleToggle(role)}
                         className={`btn ${active ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ flex: 1, padding: '8px', fontSize: '12px' }}
+                        style={{ flex: 1, padding: '8px 12px', fontSize: '12px', borderRadius: '8px' }}
                       >
                         {role === 'buyer' ? 'Pembeli' : role === 'seller' ? 'Penjual' : 'Kurir'}
                       </button>
@@ -220,47 +272,57 @@ function AppContent() {
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px', padding: '12px', justifyContent: 'center' }}>
-              {isSignUp ? 'Daftar Sekarang' : 'Masuk Sesi'}
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px', padding: '12px', borderRadius: '8px', fontSize: '14px', justifyContent: 'center' }}>
+              {isSignUp ? 'Daftar Sekarang' : 'Masuk ke Aplikasi'}
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>
-              {isSignUp ? 'Sudah memiliki akun?' : 'Belum punya akun pasar?'}
-            </span>{' '}
-            <button 
-              type="button" 
-              onClick={() => setIsSignUp(!isSignUp)}
-              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-            >
-              {isSignUp ? 'Masuk' : 'Daftar Akun'}
-            </button>
+          {/* Quick Access Instant Demo Panel */}
+          <div style={{ marginTop: '28px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', textAlign: 'center', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+              Pilih Akun Demo Instan
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+              {users.map(u => (
+                <button 
+                  type="button"
+                  key={u.id}
+                  onClick={() => handleDemoLogin(u)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '11px',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minWidth: '110px',
+                    gap: '2px'
+                  }}
+                  onMouseOver={(e) => { 
+                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.08)'; 
+                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)'; 
+                    e.currentTarget.style.color = '#fff'; 
+                  }}
+                  onMouseOut={(e) => { 
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; 
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)'; 
+                    e.currentTarget.style.color = 'var(--text-secondary)'; 
+                  }}
+                >
+                  <strong style={{ fontSize: '11px' }}>{u.name}</strong>
+                  <span style={{ fontSize: '9px', opacity: 0.6, textTransform: 'uppercase' }}>
+                    {u.role === 'buyer-seller' ? 'Multi-Role' : u.role === 'driver' ? 'Kurir' : u.role === 'buyer' ? 'Pembeli' : u.role === 'seller' ? 'Penjual' : u.role}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }}></div>
-            <span style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Atau Demo Instan</span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }}></div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {users.map(u => (
-              <button 
-                type="button"
-                key={u.id}
-                className="btn btn-secondary" 
-                onClick={() => {
-                  setAuthUsername(u.username);
-                  setAuthPassword(u.password);
-                  login(u.username, u.password);
-                }}
-                style={{ fontSize: '11px', padding: '8px', justifyContent: 'center', textAlign: 'center' }}
-              >
-                {u.name} ({u.role.toUpperCase()})
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     );

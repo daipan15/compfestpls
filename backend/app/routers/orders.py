@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models import models
 from app.schemas import schemas
+from app.core.date_utils import get_wib_now
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -77,7 +78,7 @@ def checkout(
         v = db.query(models.Voucher).filter(
             models.Voucher.code == payload.voucherCode,
             models.Voucher.active == 1,
-            models.Voucher.expiry_date > datetime.utcnow()
+            models.Voucher.expiry_date > get_wib_now()
         ).first()
         if v and subtotal >= v.min_purchase:
             if v.discount_type == models.DiscountTypeEnum.percent:
@@ -90,7 +91,7 @@ def checkout(
 
     # Create Order
     order_id = f"ORD-{random.randint(1000, 9999)}"
-    now = datetime.utcnow()
+    now = get_wib_now()
     deadline = now + timedelta(hours=2) # 2 hours payment deadline
     
     order = models.Order(
@@ -137,7 +138,7 @@ def pay_order(
         raise HTTPException(status_code=400, detail="Order is already paid or cancelled")
 
     # Check deadline
-    if datetime.utcnow() >= order.payment_deadline:
+    if get_wib_now() >= order.payment_deadline:
         order.status = "CANCELLED"
         order.cancellation_reason = "Batas waktu pembayaran habis (Overdue)"
         db.commit()
@@ -153,7 +154,7 @@ def pay_order(
         wallet_id=wallet.id,
         type="PAYMENT",
         amount=-order.total,
-        timestamp=datetime.utcnow(),
+        timestamp=get_wib_now(),
         description=f"Pembayaran Pesanan {order_id}"
     ))
 
@@ -169,7 +170,7 @@ def pay_order(
                 wallet_id=seller_user.wallet.id,
                 type="EARNING",
                 amount=item.price * item.quantity,
-                timestamp=datetime.utcnow(),
+                timestamp=get_wib_now(),
                 description=f"Hasil Penjualan Pesanan {order_id} - {item.product.name}"
             ))
 
@@ -206,7 +207,7 @@ def cancel_order_api(
                 wallet_id=buyer_wallet.id,
                 type="REFUND",
                 amount=order.total,
-                timestamp=datetime.utcnow(),
+                timestamp=get_wib_now(),
                 description=f"Refund Pembatalan Pesanan {order_id}"
             ))
             
@@ -219,7 +220,7 @@ def cancel_order_api(
                     wallet_id=seller_user.wallet.id,
                     type="REFUND_DEDUCTION",
                     amount=-item.price * item.quantity,
-                    timestamp=datetime.utcnow(),
+                    timestamp=get_wib_now(),
                     description=f"Refund Pemotongan Pembatalan Pesanan {order_id}"
                 ))
 

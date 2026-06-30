@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models import models
 from app.schemas import schemas
+from app.core.date_utils import get_wib_now
 
 router = APIRouter(prefix="/delivery", tags=["delivery"])
 
@@ -57,7 +58,7 @@ def complete_delivery(
             wallet_id=driver.wallet.id,
             type="EARNING",
             amount=10000,
-            timestamp=datetime.utcnow(),
+            timestamp=get_wib_now(),
             description=f"Fee Pengantaran Pesanan {order_id}"
         ))
 

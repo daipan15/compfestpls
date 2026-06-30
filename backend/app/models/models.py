@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Table, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.date_utils import get_wib_now
 
 class DiscountTypeEnum(str, enum.Enum):
     percent = "percent"
@@ -15,6 +16,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
+    name = Column(String, nullable=True)
 
     roles = relationship("UserRoleAssignment", back_populates="user", cascade="all, delete-orphan")
     wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -28,6 +30,8 @@ class User(Base):
         role_list = [r.role for r in self.roles]
         if "admin" in role_list:
             return "admin"
+        if "seller" in role_list and "buyer" in role_list:
+            return "buyer-seller"
         if "seller" in role_list:
             return "seller"
         if "driver" in role_list:
@@ -64,7 +68,7 @@ class WalletTransaction(Base):
     wallet_id = Column(Integer, ForeignKey("wallets.id"), nullable=False)
     type = Column(String, nullable=False)  # TOPUP, PAYMENT, EARNING
     amount = Column(Integer, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=get_wib_now)
     description = Column(String)
 
     wallet = relationship("Wallet", back_populates="transactions")
@@ -78,6 +82,10 @@ class Address(Base):
     detail = Column(String, nullable=False)
 
     user = relationship("User", back_populates="addresses")
+
+    @property
+    def userId(self):
+        return self.user_id
 
 class Store(Base):
     __tablename__ = "stores"
@@ -105,6 +113,20 @@ class Product(Base):
     cart_items = relationship("CartItem", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
+
+    @property
+    def reviewsCount(self):
+        return len(self.reviews) if self.reviews else 0
+
+    @property
+    def rating(self):
+        if not self.reviews:
+            return 5.0
+        return sum(r.rating for r in self.reviews) / len(self.reviews)
+
+    @property
+    def storeId(self):
+        return self.store_id
 
 class Cart(Base):
     __tablename__ = "carts"
@@ -137,7 +159,7 @@ class Order(Base):
     address = Column(String, nullable=False)
     status = Column(String, default="UNPAID")  # UNPAID, PAID, SHIPPING, DELIVERED, CANCELLED
     cancellation_reason = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_wib_now)
     payment_deadline = Column(DateTime, nullable=False)
     driver_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -145,6 +167,14 @@ class Order(Base):
     driver = relationship("User", foreign_keys=[driver_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="order", cascade="all, delete-orphan")
+
+    @property
+    def buyerId(self):
+        return self.buyer_id
+
+    @property
+    def driverId(self):
+        return self.driver_id
 
     @property
     def storeIds(self):
@@ -195,3 +225,7 @@ class Review(Base):
 
     order = relationship("Order", back_populates="reviews")
     product = relationship("Product", back_populates="reviews")
+
+    @property
+    def author(self):
+        return self.order.buyer.name if self.order and self.order.buyer else "Pembeli"

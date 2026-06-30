@@ -52,6 +52,7 @@ class AddressCreate(AddressBase):
 class AddressResponse(AddressBase):
     id: int
     user_id: int
+    userId: int
 
     class Config:
         from_attributes = True
@@ -94,6 +95,7 @@ class ReviewResponse(BaseModel):
 class ProductResponse(ProductBase):
     id: int
     store_id: int
+    storeId: int
     rating: float
     reviewsCount: int
     reviews: List[ReviewResponse] = []
@@ -197,6 +199,7 @@ class OrderResponse(BaseModel):
     driverId: Optional[int] = None
     driverName: Optional[str] = None
     reviewedProductIds: List[int] = []
+    storeIds: List[int] = []
 
     class Config:
         from_attributes = True

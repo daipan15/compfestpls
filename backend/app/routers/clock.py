@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.models import models
+from app.core.date_utils import get_wib_now
 
 router = APIRouter(prefix="/clock", tags=["clock"])
 
@@ -11,7 +12,7 @@ SIM_HOURS_OFFSET = 0
 
 def get_sim_time() -> datetime:
     global SIM_HOURS_OFFSET
-    return datetime.utcnow() + timedelta(hours=SIM_HOURS_OFFSET)
+    return get_wib_now() + timedelta(hours=SIM_HOURS_OFFSET)
 
 @router.get("")
 def get_current_sim_time():

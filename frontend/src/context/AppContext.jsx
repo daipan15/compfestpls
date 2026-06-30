@@ -165,10 +165,10 @@ export const AppProvider = ({ children }) => {
       setCurrentUser(profile);
       addLog(`User '${username}' berhasil login.`);
       showNotification(`Selamat datang kembali, ${profile.name}!`);
-      return true;
+      return profile;
     } catch (e) {
       showNotification(e.message || "Gagal masuk");
-      return false;
+      return null;
     }
   };
 

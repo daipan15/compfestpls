@@ -28,19 +28,6 @@ def list_products(
         
     products = query.all()
     
-    # Map reviews format to match schemas.py
-    for p in products:
-        p_reviews = []
-        for r in p.reviews:
-            p_reviews.append({
-                "author": r.order.buyer.name if r.order and r.order.buyer else "Pembeli",
-                "rating": r.rating,
-                "comment": r.comment
-            })
-        p.reviewsCount = len(p_reviews)
-        p.rating = sum(r["rating"] for r in p_reviews) / len(p_reviews) if p_reviews else 5.0
-        p.reviews = p_reviews
-        
     return products
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
@@ -48,17 +35,6 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     p = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
-        
-    p_reviews = []
-    for r in p.reviews:
-        p_reviews.append({
-            "author": r.order.buyer.name if r.order and r.order.buyer else "Pembeli",
-            "rating": r.rating,
-            "comment": r.comment
-        })
-    p.reviewsCount = len(p_reviews)
-    p.rating = sum(r["rating"] for r in p_reviews) / len(p_reviews) if p_reviews else 5.0
-    p.reviews = p_reviews
     return p
 
 @router.post("", response_model=schemas.ProductResponse)
@@ -81,10 +57,6 @@ def create_product(
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
-    
-    new_product.reviews = []
-    new_product.reviewsCount = 0
-    new_product.rating = 5.0
     return new_product
 
 @router.put("/{product_id}", response_model=schemas.ProductResponse)

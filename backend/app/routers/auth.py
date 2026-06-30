@@ -55,9 +55,5 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/profile", response_model=schemas.UserResponse)
 def get_profile(current_user: models.User = Depends(get_current_user)):
-    # Inject storeId if user has a store
-    res = current_user
-    if current_user.store:
-        res.storeId = current_user.store.id
-    res.walletBalance = current_user.wallet.balance if current_user.wallet else 0
-    return res
+    current_user.walletBalance = current_user.wallet.balance if current_user.wallet else 0
+    return current_user

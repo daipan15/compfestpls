@@ -5,6 +5,8 @@ from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
 
+from app.core.date_utils import get_wib_now
+
 router = APIRouter(prefix="/discounts", tags=["discounts"])
 
 @router.get("/vouchers/{code}", response_model=schemas.VoucherResponse)
@@ -12,7 +14,7 @@ def get_voucher(code: str, db: Session = Depends(get_db)):
     v = db.query(models.Voucher).filter(
         models.Voucher.code == code,
         models.Voucher.active == 1,
-        models.Voucher.expiry_date > datetime.utcnow()
+        models.Voucher.expiry_date > get_wib_now()
     ).first()
     
     if not v:
@@ -27,7 +29,7 @@ def get_voucher(code: str, db: Session = Depends(get_db)):
 def get_promo(code: str, db: Session = Depends(get_db)):
     p = db.query(models.Promo).filter(
         models.Promo.code == code,
-        models.Promo.expiry_date > datetime.utcnow()
+        models.Promo.expiry_date > get_wib_now()
     ).first()
     
     if not p:

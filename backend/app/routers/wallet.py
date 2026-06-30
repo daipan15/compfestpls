@@ -6,6 +6,8 @@ from app.core.security import get_current_user
 from app.models import models
 from app.schemas import schemas
 
+from app.core.date_utils import get_wib_now
+
 router = APIRouter(prefix="/wallet", tags=["wallet"])
 
 @router.get("", response_model=schemas.WalletResponse)
@@ -47,7 +49,7 @@ def top_up_wallet(
         wallet_id=wallet.id,
         type="TOPUP",
         amount=payload.amount,
-        timestamp=datetime.utcnow(),
+        timestamp=get_wib_now(),
         description="Isi Saldo Dompet (Top Up)"
     )
     db.add(tx)
