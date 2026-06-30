@@ -20,7 +20,8 @@ import {
   Activity,
   UserCheck,
   Shield,
-  Truck
+  Truck,
+  LogOut
 } from 'lucide-react';
 
 function AppContent() {
@@ -38,6 +39,7 @@ function AppContent() {
     simLogs,
     notification,
     login,
+    register,
     logout,
     switchUser,
     addToCart,
@@ -55,7 +57,8 @@ function AppContent() {
     updateProduct,
     deleteProduct,
     addProductReview,
-    advanceTime
+    advanceTime,
+    showNotification
   } = useContext(AppContext);
 
   // View States
@@ -81,12 +84,47 @@ function AppContent() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Auth Form States
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authName, setAuthName] = useState('');
+  const [authUsername, setAuthUsername] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authRoles, setAuthRoles] = useState(['buyer']);
+
   // Search/Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState('');
 
   // Clock widget collapse
   const [clockCollapsed, setClockCollapsed] = useState(false);
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    if (isSignUp) {
+      if (!authName || !authUsername || !authEmail || !authPassword) {
+        showNotification("Harap isi semua kolom pendaftaran.");
+        return;
+      }
+      await register(authName, authUsername, authEmail, authPassword, authRoles);
+    } else {
+      if (!authUsername || !authPassword) {
+        showNotification("Harap isi username dan password.");
+        return;
+      }
+      await login(authUsername, authPassword);
+    }
+  };
+
+  const handleRoleToggle = (role) => {
+    if (authRoles.includes(role)) {
+      if (authRoles.length > 1) {
+        setAuthRoles(authRoles.filter(r => r !== role));
+      }
+    } else {
+      setAuthRoles([...authRoles, role]);
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -97,25 +135,129 @@ function AppContent() {
         justifyContent: 'center',
         minHeight: '100vh',
         background: '#090d16',
-        backgroundImage: 'radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.15) 0px, transparent 50%)'
+        backgroundImage: 'radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.15) 0px, transparent 50%)',
+        padding: '20px'
       }}>
-        <div className="card" style={{ width: '400px', padding: '40px' }}>
-          <h2 style={{ marginBottom: '24px', textAlign: 'center', fontFamily: 'var(--font-heading)' }} className="text-gradient">
-            Login Bazaar CompFest
+        <div className="card" style={{ width: '450px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <h2 style={{ marginBottom: '8px', textAlign: 'center', fontFamily: 'var(--font-heading)' }} className="text-gradient">
+            Bazaar CompFest
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px', textAlign: 'center' }}>
-            Pilih pengguna simulasi di bawah untuk langsung masuk:
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px', textAlign: 'center' }}>
+            {isSignUp ? 'Buat akun pasar digital baru Anda' : 'Masuk ke dalam dashboard transaksi marketplace'}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {isSignUp && (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Nama Lengkap</label>
+                  <input 
+                    type="text" 
+                    className="input" 
+                    placeholder="Contoh: John Doe" 
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Email</label>
+                  <input 
+                    type="email" 
+                    className="input" 
+                    placeholder="Contoh: johndoe@domain.com" 
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Username</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="Masukkan username" 
+                value={authUsername}
+                onChange={(e) => setAuthUsername(e.target.value)}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Password</label>
+              <input 
+                type="password" 
+                className="input" 
+                placeholder="Masukkan password" 
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {isSignUp && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Pilih Peran Akun (Multi-role didukung)</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {['buyer', 'seller', 'driver'].map((role) => {
+                    const active = authRoles.includes(role);
+                    return (
+                      <button
+                        type="button"
+                        key={role}
+                        onClick={() => handleRoleToggle(role)}
+                        className={`btn ${active ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ flex: 1, padding: '8px', fontSize: '12px' }}
+                      >
+                        {role === 'buyer' ? 'Pembeli' : role === 'seller' ? 'Penjual' : 'Kurir'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px', padding: '12px', justifyContent: 'center' }}>
+              {isSignUp ? 'Daftar Sekarang' : 'Masuk Sesi'}
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {isSignUp ? 'Sudah memiliki akun?' : 'Belum punya akun pasar?'}
+            </span>{' '}
+            <button 
+              type="button" 
+              onClick={() => setIsSignUp(!isSignUp)}
+              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+            >
+              {isSignUp ? 'Masuk' : 'Daftar Akun'}
+            </button>
+          </div>
+
+          <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }}></div>
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Atau Demo Instan</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }}></div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
             {users.map(u => (
               <button 
+                type="button"
                 key={u.id}
                 className="btn btn-secondary" 
-                onClick={() => login(u.username, u.password)}
-                style={{ justifyContent: 'space-between', padding: '16px' }}
+                onClick={() => {
+                  setAuthUsername(u.username);
+                  setAuthPassword(u.password);
+                  login(u.username, u.password);
+                }}
+                style={{ fontSize: '11px', padding: '8px', justifyContent: 'center', textAlign: 'center' }}
               >
-                <span>{u.name} ({u.role.toUpperCase()})</span>
-                <span style={{ fontSize: '12px', color: 'var(--color-primary)' }}>{u.username}</span>
+                {u.name} ({u.role.toUpperCase()})
               </button>
             ))}
           </div>

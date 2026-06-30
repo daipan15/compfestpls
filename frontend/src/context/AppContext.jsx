@@ -11,23 +11,26 @@ export const formatRupiah = (number) => {
   }).format(number);
 };
 
+const API_BASE = "http://localhost:8000/api/v1";
+
 export const AppProvider = ({ children }) => {
-  // --- Global State ---
+  // --- States ---
+  const users = [
+    { id: 1, name: 'Buyer Demo', username: 'buyer1', password: 'Buyer123!', role: 'buyer' },
+    { id: 2, name: 'Seller Demo', username: 'seller1', password: 'Seller123!', role: 'seller' },
+    { id: 3, name: 'Multi-Role User', username: 'multiuser', password: 'Multi123!', role: 'buyer-seller' },
+    { id: 4, name: 'Kurir / Driver', username: 'driver1', password: 'Driver123!', role: 'driver' },
+    { id: 5, name: 'Admin System', username: 'admin', password: 'Admin123!', role: 'admin' }
+  ];
   const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState([]);
   const [stores, setStores] = useState([]);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [addresses, setAddresses] = useState([]);
-  const [vouchers, setVouchers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [walletHistory, setWalletHistory] = useState([]);
-
-  // Clock Simulation
   const [simTime, setSimTime] = useState(new Date('2026-06-30T18:00:00'));
-  const [simLogs, setSimLogs] = useState([]);
-
-  // Toast Notification
+  const [simLogs, setSimLogs] = useState(["Sistem siap digunakan."]);
   const [notification, setNotification] = useState(null);
 
   const showNotification = (message) => {
@@ -36,461 +39,406 @@ export const AppProvider = ({ children }) => {
   };
 
   const addLog = (message) => {
-    const timeStr = simTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setSimLogs(prev => [`[${timeStr}] ${message}`, ...prev.slice(0, 49)]);
   };
 
-  // --- Initial Data Load (Pre-seeding) ---
+  // --- API Fetch Helper ---
+  const apiFetch = async (path, options = {}) => {
+    const token = localStorage.getItem('compfest_token');
+    const headers = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: "Terjadi kesalahan pada server" }));
+        throw new Error(errData.detail || "Gagal melakukan request");
+      }
+
+      return await res.json().catch(() => null);
+    } catch (error) {
+      console.error(`API Error on ${path}:`, error);
+      throw error;
+    }
+  };
+
+  // --- Fetch Core Data from Backend ---
+  const loadCoreData = async () => {
+    try {
+      const storesData = await apiFetch("/stores");
+      setStores(storesData || []);
+
+      const productsData = await apiFetch("/products");
+      setProducts(productsData || []);
+      
+      const clockData = await apiFetch("/clock");
+      if (clockData && clockData.simTime) {
+        setSimTime(new Date(clockData.simTime));
+      }
+    } catch (e) {
+      console.error("Gagal memuat data utama:", e);
+    }
+  };
+
+  const loadUserData = async () => {
+    if (!currentUser) return;
+    try {
+      // Load cart
+      if (currentUser.role === 'buyer' || currentUser.role === 'buyer-seller') {
+        const cartData = await apiFetch("/cart");
+        setCart(cartData.items || []);
+        
+        const addrData = await apiFetch("/addresses");
+        setAddresses(addrData || []);
+      }
+
+      // Load wallet details
+      if (currentUser.role !== 'admin') {
+        const walletData = await apiFetch("/wallet");
+        setWalletHistory(walletData.transactions || []);
+        setCurrentUser(prev => prev ? { ...prev, walletBalance: walletData.balance } : null);
+      }
+
+      // Load orders
+      const ordersData = await apiFetch("/orders");
+      setOrders(ordersData || []);
+    } catch (e) {
+      console.error("Gagal memuat data pengguna:", e);
+    }
+  };
+
+  // Fetch initial configuration data on load
   useEffect(() => {
-    const savedData = localStorage.getItem('compfest_state');
-
-    if (savedData) {
-      const data = JSON.parse(savedData);
-      setUsers(data.users || []);
-      setStores(data.stores || []);
-      setProducts(data.products || []);
-      setOrders(data.orders || []);
-      setAddresses(data.addresses || []);
-      setVouchers(data.vouchers || []);
-      setWalletHistory(data.walletHistory || []);
-
-      const loggedInUser = data.users.find(u => u.username === (data.currentUsername || 'buyer1'));
-      setCurrentUser(loggedInUser || data.users[0]);
-      setSimTime(new Date(data.simTime || '2026-06-30T18:00:00'));
-      setSimLogs(data.simLogs || ["System initialized."]);
-    } else {
-      // Pre-seed users
-      const initialUsers = [
-        { id: 'u-1', username: 'buyer1', name: 'Buyer Satu', password: 'Buyer123!', role: 'buyer', walletBalance: 1000000 },
-        { id: 'u-2', username: 'seller1', name: 'Seller Satu', password: 'Seller123!', role: 'seller', storeId: 'store-1', walletBalance: 250000 },
-        { id: 'u-3', username: 'admin', name: 'System Admin', password: 'Admin123!', role: 'admin', walletBalance: 0 },
-        { id: 'u-4', username: 'driver1', name: 'Driver Satu', password: 'Driver123!', role: 'driver', walletBalance: 150000 },
-        { id: 'u-5', username: 'multiuser', name: 'Multi Role User', password: 'Multi123!', role: 'buyer-seller', storeId: 'store-2', walletBalance: 500000 }
-      ];
-
-      // Pre-seed stores
-      const initialStores = [
-        { id: 'store-1', name: 'Seapedia Electro', description: 'Toko Elektronik & Aksesoris Terlengkap', rating: 4.8 },
-        { id: 'store-2', name: 'Nusantara Snack & Food', description: 'Kudapan lokal nikmat khas Indonesia', rating: 4.5 }
-      ];
-
-      // Pre-seed products
-      const initialProducts = [
-        { id: 'product-1', storeId: 'store-1', name: 'Charger Gan 65W Rapid', description: 'Kepala charger fast charging hemat energi dan berukuran kecil', price: 120000, stock: 30, rating: 4.8, reviewsCount: 1, reviews: [{ author: 'UserX', rating: 5, comment: 'Bagus sekali, charging laptop super cepat!' }] },
-        { id: 'product-2', storeId: 'store-1', name: 'Kabel USB-C SuperSpeed', description: 'Kabel data tebal dan awet mendukung transfer data cepat', price: 35000, stock: 100, rating: 4.5, reviewsCount: 1, reviews: [{ author: 'KabelLover', rating: 4, comment: 'Cukup awet untuk pemakaian harian.' }] },
-        { id: 'product-3', storeId: 'store-2', name: 'Keripik Singkong Balado', description: 'Keripik singkong renyah dengan bumbu cabai asli khas Padang', price: 18000, stock: 150, rating: 4.7, reviewsCount: 1, reviews: [{ author: 'CamilanEnak', rating: 5, comment: 'Sangat pedas manis gurih mantap.' }] },
-        { id: 'product-4', storeId: 'store-2', name: 'Kopi Susu Gula Aren 1L', description: 'Minuman kopi dingin botol satu liter buatan barista lokal', price: 65000, stock: 40, rating: 4.6, reviewsCount: 1, reviews: [{ author: 'KopiAddict', rating: 4, comment: 'Manisnya pas dan kopinya berasa.' }] }
-      ];
-
-      // Pre-seed addresses
-      const initialAddresses = [
-        { id: 'addr-1', userId: 'u-1', title: 'Rumah', detail: 'Jl. Melati No. 12, Kebayoran Baru, Jakarta Selatan' },
-        { id: 'addr-2', userId: 'u-1', title: 'Kantor', detail: 'Menara Kompas, Lt. 8, Palmerah, Jakarta Pusat' }
-      ];
-
-      // Pre-seed vouchers
-      const initialVouchers = [
-        { code: 'SEAPEDIA10', discountType: 'percent', value: 10, maxDiscount: 20000, minPurchase: 50000, active: true },
-        { code: 'PROMOAWAL', discountType: 'fixed', value: 15000, maxDiscount: 15000, minPurchase: 30000, active: true }
-      ];
-
-      setUsers(initialUsers);
-      setStores(initialStores);
-      setProducts(initialProducts);
-      setAddresses(initialAddresses);
-      setVouchers(initialVouchers);
-      setCurrentUser(initialUsers[0]); // Default buyer1
-      setSimLogs(["Sistem diinisialisasi.", "Akun default: buyer1 (Saldo Dompet Rp1.000.000)."]);
+    loadCoreData();
+    const savedToken = localStorage.getItem('compfest_token');
+    if (savedToken) {
+      apiFetch("/auth/profile")
+        .then(profile => {
+          setCurrentUser(profile);
+          addLog(`Berhasil auto-login sebagai '${profile.username}'.`);
+        })
+        .catch(() => {
+          localStorage.removeItem('compfest_token');
+          addLog("Token sesi kadaluarsa. Silakan login kembali.");
+        });
     }
   }, []);
 
-  // Save changes to localStorage on any state update
+  // Fetch user data whenever currentUser changes
   useEffect(() => {
-    if (users.length > 0) {
-      const dataToSave = {
-        users,
-        stores,
-        products,
-        orders,
-        addresses,
-        vouchers,
-        walletHistory,
-        currentUsername: currentUser?.username || 'buyer1',
-        simTime: simTime.toISOString(),
-        simLogs
-      };
-      localStorage.setItem('compfest_state', JSON.stringify(dataToSave));
+    if (currentUser) {
+      loadUserData();
+    } else {
+      setCart([]);
+      setAddresses([]);
+      setOrders([]);
+      setWalletHistory([]);
     }
-  }, [users, stores, products, orders, addresses, vouchers, walletHistory, currentUser, simTime, simLogs]);
+  }, [currentUser]);
+
+  // Vouchers list for Checkout UI (Static fallback for view)
+  const vouchers = [
+    { code: 'SEAPEDIA10', discountType: 'percent', value: 10, maxDiscount: 20000, minPurchase: 50000, active: true },
+    { code: 'PROMOAWAL', discountType: 'fixed', value: 15000, maxDiscount: 15000, minPurchase: 30000, active: true }
+  ];
 
   // --- Auth Operations ---
-  const login = (username, password) => {
-    const user = users.find(u => u.username === username);
-    if (user && user.password === password) {
-      setCurrentUser(user);
+  const login = async (username, password) => {
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password })
+      });
+      localStorage.setItem('compfest_token', res.access_token);
+      
+      const profile = await apiFetch("/auth/profile");
+      setCurrentUser(profile);
       addLog(`User '${username}' berhasil login.`);
-      showNotification(`Selamat datang kembali, ${user.name}!`);
+      showNotification(`Selamat datang kembali, ${profile.name}!`);
       return true;
+    } catch (e) {
+      showNotification(e.message || "Gagal masuk");
+      return false;
     }
-    return false;
+  };
+
+  const register = async (name, username, email, password, roles) => {
+    try {
+      await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, username, email, password, roles })
+      });
+      addLog(`User baru '${username}' berhasil terdaftar.`);
+      showNotification("Registrasi berhasil! Menghubungkan sesi...");
+      return await login(username, password);
+    } catch (e) {
+      showNotification(e.message || "Registrasi gagal");
+      return false;
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('compfest_token');
     addLog(`User '${currentUser?.username}' logout.`);
     setCurrentUser(null);
+    showNotification("Anda telah keluar.");
   };
 
-  // Switch role helper for simulation purposes
-  const switchUser = (username) => {
-    const user = users.find(u => u.username === username);
-    if (user) {
-      setCurrentUser(user);
-      addLog(`Simulasi: Pindah ke akun '${username}' (${user.role}).`);
-      showNotification(`Beralih peran ke: ${user.name}`);
+  const switchUser = async (username) => {
+    // Switch role helper in demo uses direct password matching by credential lists
+    const credentials = {
+      buyer1: "Buyer123!",
+      seller1: "Seller123!",
+      driver1: "Driver123!",
+      admin: "Admin123!",
+      multiuser: "Multi123!"
+    };
+    const pw = credentials[username];
+    if (pw) {
+      await login(username, pw);
+      addLog(`Simulasi: Beralih ke akun '${username}'.`);
     }
   };
 
   // --- Cart Operations ---
-  const addToCart = (product, qty = 1) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: Math.min(product.stock, item.quantity + qty) }
-            : item
-        );
-      }
-      return [...prev, { product, quantity: qty }];
-    });
-    showNotification(`${product.name} ditambahkan ke keranjang.`);
+  const addToCart = async (product, qty = 1) => {
+    try {
+      await apiFetch("/cart/items", {
+        method: "POST",
+        body: JSON.stringify({ product_id: product.id, quantity: qty })
+      });
+      await loadUserData();
+      showNotification(`${product.name} ditambahkan ke keranjang.`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  const updateCartQty = (productId, qty) => {
-    setCart(prev =>
-      prev.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity: Math.max(1, qty) }
-          : item
-      )
-    );
+  const updateCartQty = async (productId, qty) => {
+    try {
+      await apiFetch(`/cart/items/${productId}?quantity=${qty}`, {
+        method: "PUT"
+      });
+      await loadUserData();
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
-    showNotification("Produk dihapus dari keranjang.");
+  const removeFromCart = async (productId) => {
+    try {
+      await apiFetch(`/cart/items/${productId}`, {
+        method: "DELETE"
+      });
+      await loadUserData();
+      showNotification("Produk dihapus dari keranjang.");
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
-
-  const clearCart = () => setCart([]);
 
   // --- Wallet Operations ---
-  const topUpWallet = (amount) => {
-    if (!currentUser) return;
-    const amountVal = Number(amount);
-
-    // Update current user balance
-    setUsers(prev => prev.map(u => {
-      if (u.id === currentUser.id) {
-        const updated = { ...u, walletBalance: u.walletBalance + amountVal };
-        setCurrentUser(updated);
-        return updated;
-      }
-      return u;
-    }));
-
-    // Record wallet transaction
-    const newTx = {
-      id: `tx-${Date.now()}`,
-      userId: currentUser.id,
-      type: 'TOPUP',
-      amount: amountVal,
-      timestamp: new Date(simTime).toISOString(),
-      description: 'Isi Saldo Dompet (Top Up)'
-    };
-    setWalletHistory(prev => [newTx, ...prev]);
-    addLog(`Top-up dompet berhasil: +${formatRupiah(amountVal)}`);
-    showNotification(`Top Up ${formatRupiah(amountVal)} Berhasil!`);
+  const topUpWallet = async (amount) => {
+    try {
+      await apiFetch("/wallet/topup", {
+        method: "POST",
+        body: JSON.stringify({ amount: Number(amount) })
+      });
+      await loadUserData();
+      showNotification(`Isi saldo ${formatRupiah(amount)} berhasil!`);
+      addLog(`Mengisi saldo dompet: +${formatRupiah(amount)}`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
   // --- Address Management ---
-  const addAddress = (title, detail) => {
-    if (!currentUser) return;
-    const newAddr = {
-      id: `addr-${Date.now()}`,
-      userId: currentUser.id,
-      title,
-      detail
-    };
-    setAddresses(prev => [...prev, newAddr]);
-    addLog(`Menambahkan alamat baru: '${title}'`);
-    showNotification("Alamat pengiriman berhasil ditambahkan.");
+  const addAddress = async (title, detail) => {
+    try {
+      await apiFetch("/addresses", {
+        method: "POST",
+        body: JSON.stringify({ title, detail })
+      });
+      await loadUserData();
+      showNotification("Alamat pengiriman berhasil disimpan.");
+      addLog(`Menambahkan alamat baru: '${title}'`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  const deleteAddress = (id) => {
-    setAddresses(prev => prev.filter(addr => addr.id !== id));
-    addLog("Menghapus alamat pengiriman.");
+  const deleteAddress = async (id) => {
+    try {
+      await apiFetch(`/addresses/${id}`, {
+        method: "DELETE"
+      });
+      await loadUserData();
+      showNotification("Alamat pengiriman dihapus.");
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
   // --- Checkout & Orders ---
-  const checkout = (addressId, voucherCode = '') => {
-    if (!currentUser || cart.length === 0) return false;
-
-    // Calculate original subtotal
-    const subtotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-    let discount = 0;
-
-    // Validate and apply discount
-    if (voucherCode) {
-      const voucher = vouchers.find(v => v.code === voucherCode && v.active);
-      if (voucher && subtotal >= (voucher.minPurchase || 0)) {
-        if (voucher.discountType === 'percent') {
-          discount = Math.min(voucher.maxDiscount, (subtotal * voucher.value) / 100);
-        } else {
-          discount = voucher.value;
-        }
-      }
+  const checkout = async (addressId, voucherCode = '') => {
+    try {
+      const res = await apiFetch("/orders/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          addressId: Number(addressId),
+          voucherCode: voucherCode || null
+        })
+      });
+      await loadUserData();
+      addLog(`Pesanan baru dibuat: ${res.orderId}. Status: UNPAID.`);
+      showNotification(`Pesanan ${res.orderId} sukses dibuat.`);
+      return res.orderId;
+    } catch (e) {
+      showNotification(e.message);
+      return null;
     }
-
-    const total = subtotal - discount;
-
-    // Create Order Object
-    const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newOrder = {
-      id: orderId,
-      buyerId: currentUser.id,
-      buyerName: currentUser.name,
-      items: [...cart],
-      subtotal,
-      discount,
-      total,
-      address: addresses.find(a => a.id === addressId)?.detail || 'Alamat tidak ditemukan',
-      status: 'UNPAID', // Start as Unpaid to simulate overdue & payment deadlines
-      createdAt: new Date(simTime).toISOString(),
-      paymentDeadline: new Date(new Date(simTime).getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours deadline
-      driverId: null,
-      driverName: null,
-      storeIds: [...new Set(cart.map(item => item.product.storeId))]
-    };
-
-    setOrders(prev => [newOrder, ...prev]);
-    clearCart();
-    addLog(`Pesanan baru dibuat: ${orderId} senilai ${formatRupiah(total)}. Status: UNPAID.`);
-    showNotification(`Pesanan ${orderId} dibuat! Selesaikan pembayaran.`);
-    return orderId;
   };
 
-  const payOrder = (orderId) => {
-    const order = orders.find(o => o.id === orderId);
-    if (!order || order.status !== 'UNPAID') return false;
-
-    if (currentUser.walletBalance < order.total) {
-      showNotification("Saldo dompet tidak cukup!");
+  const payOrder = async (orderId) => {
+    try {
+      await apiFetch(`/orders/${orderId}/pay`, { method: "POST" });
+      await loadUserData();
+      addLog(`Pesanan ${orderId} lunas dibayar.`);
+      showNotification(`Pembayaran pesanan ${orderId} sukses!`);
+      return true;
+    } catch (e) {
+      showNotification(e.message);
       return false;
     }
-
-    // Deduct buyer wallet balance
-    setUsers(prev => prev.map(u => {
-      if (u.id === currentUser.id) {
-        const updated = { ...u, walletBalance: u.walletBalance - order.total };
-        setCurrentUser(updated);
-        return updated;
-      }
-      return u;
-    }));
-
-    // Record wallet transaction
-    const newTx = {
-      id: `tx-${Date.now()}`,
-      userId: currentUser.id,
-      type: 'PAYMENT',
-      amount: -order.total,
-      timestamp: new Date(simTime).toISOString(),
-      description: `Pembayaran Pesanan ${orderId}`
-    };
-    setWalletHistory(prev => [newTx, ...prev]);
-
-    // Pay store owners
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        return { ...o, status: 'PAID' };
-      }
-      return o;
-    }));
-
-    addLog(`Pesanan ${orderId} berhasil DIBAYAR.`);
-    showNotification(`Pembayaran pesanan ${orderId} berhasil!`);
-    return true;
   };
 
-  const cancelOrder = (orderId, reason = 'Dibatalkan oleh pembeli') => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        return { ...o, status: 'CANCELLED', cancellationReason: reason };
-      }
-      return o;
-    }));
-    addLog(`Pesanan ${orderId} dibatalkan. Alasan: ${reason}`);
-    showNotification(`Pesanan ${orderId} dibatalkan.`);
+  const cancelOrder = async (orderId, reason = 'Dibatalkan oleh pembeli') => {
+    try {
+      await apiFetch(`/orders/${orderId}/cancel?reason=${encodeURIComponent(reason)}`, {
+        method: "POST"
+      });
+      await loadUserData();
+      addLog(`Pesanan ${orderId} dibatalkan: ${reason}`);
+      showNotification(`Pesanan ${orderId} dibatalkan.`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
   // --- Driver Actions ---
-  const acceptOrderDriver = (orderId, driver) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        return {
-          ...o,
-          status: 'SHIPPING',
-          driverId: driver.id,
-          driverName: driver.name
-        };
-      }
-      return o;
-    }));
-    addLog(`Driver '${driver.name}' menerima pengantaran pesanan ${orderId}.`);
-    showNotification(`Pesanan ${orderId} dalam perjalanan.`);
+  const acceptOrderDriver = async (orderId, driver) => {
+    try {
+      await apiFetch(`/delivery/${orderId}/accept`, { method: "POST" });
+      await loadUserData();
+      addLog(`Kurir ${driver.name} mengambil pesanan ${orderId}.`);
+      showNotification(`Pesanan ${orderId} mulai dikirim.`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  const completeOrderDriver = (orderId) => {
-    let orderTotal = 0;
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        orderTotal = o.total;
-        return { ...o, status: 'DELIVERED' };
-      }
-      return o;
-    }));
-
-    // Reward driver with shipping fee (mocked at Rp 10.000)
-    setUsers(prev => prev.map(u => {
-      if (u.role === 'driver') {
-        return { ...u, walletBalance: u.walletBalance + 10000 };
-      }
-      return u;
-    }));
-
-    addLog(`Pesanan ${orderId} telah sampai di tujuan. Selesai!`);
-    showNotification(`Pesanan ${orderId} sukses dikirim.`);
+  const completeOrderDriver = async (orderId) => {
+    try {
+      await apiFetch(`/delivery/${orderId}/complete`, { method: "POST" });
+      await loadUserData();
+      addLog(`Pesanan ${orderId} sukses diantarkan.`);
+      showNotification(`Pesanan ${orderId} selesai dikirim.`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  // --- Admin/Seller Product Actions ---
-  const addProduct = (productData) => {
-    const newProduct = {
-      id: `product-${Date.now()}`,
-      storeId: currentUser.storeId || 'store-1',
-      rating: 5.0,
-      reviewsCount: 0,
-      reviews: [],
-      ...productData,
-      price: Number(productData.price),
-      stock: Number(productData.stock)
-    };
-    setProducts(prev => [...prev, newProduct]);
-    addLog(`Admin/Seller menambahkan produk baru: '${productData.name}'`);
-    showNotification(`Produk ${productData.name} berhasil dijual.`);
+  // --- Seller/Admin Product Actions ---
+  const addProduct = async (productData) => {
+    try {
+      await apiFetch("/products", {
+        method: "POST",
+        body: JSON.stringify(productData)
+      });
+      await loadCoreData();
+      await loadUserData();
+      showNotification(`Produk ${productData.name} berhasil dipasarkan.`);
+      addLog(`Menambahkan produk jualan baru: ${productData.name}`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  const updateProduct = (productId, productData) => {
-    setProducts(prev => prev.map(p =>
-      p.id === productId
-        ? { ...p, ...productData, price: Number(productData.price), stock: Number(productData.stock) }
-        : p
-    ));
-    addLog(`Mengubah informasi produk ID ${productId}`);
-    showNotification("Produk berhasil diperbarui.");
+  const updateProduct = async (productId, productData) => {
+    try {
+      await apiFetch(`/products/${productId}`, {
+        method: "PUT",
+        body: JSON.stringify(productData)
+      });
+      await loadCoreData();
+      await loadUserData();
+      showNotification("Informasi produk sukses diubah.");
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
-  const deleteProduct = (productId) => {
-    setProducts(prev => prev.filter(p => p.id !== productId));
-    addLog(`Menghapus produk ID ${productId}`);
-    showNotification("Produk berhasil dihapus.");
+  const deleteProduct = async (productId) => {
+    try {
+      await apiFetch(`/products/${productId}`, {
+        method: "DELETE"
+      });
+      await loadCoreData();
+      await loadUserData();
+      showNotification("Produk sukses dihapus dari toko.");
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
   // --- Reviews ---
-  const addProductReview = (orderId, productId, rating, comment) => {
-    setProducts(prev => prev.map(p => {
-      if (p.id === productId) {
-        const newReview = {
-          author: currentUser.name,
-          rating: Number(rating),
-          comment
-        };
-        const updatedReviews = [newReview, ...(p.reviews || [])];
-        const newRating = Number((updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length).toFixed(1));
-        return {
-          ...p,
-          reviews: updatedReviews,
-          reviewsCount: updatedReviews.length,
-          rating: newRating
-        };
-      }
-      return p;
-    }));
-
-    // Mark item in order as reviewed
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        return {
-          ...o,
-          reviewedProductIds: [...(o.reviewedProductIds || []), productId]
-        };
-      }
-      return o;
-    }));
-
-    addLog(`Memberikan ulasan bintang ${rating} untuk produk.`);
-    showNotification("Terima kasih atas ulasan Anda!");
+  const addProductReview = async (orderId, productId, rating, comment) => {
+    try {
+      await apiFetch(`/products/${productId}/reviews/${orderId}`, {
+        method: "POST",
+        body: JSON.stringify({ rating, comment })
+      });
+      await loadCoreData();
+      await loadUserData();
+      showNotification("Ulasan dikirim. Terima kasih!");
+      addLog(`Memberikan ulasan bintang ${rating} pada produk.`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
   // --- TIME SIMULATION ENGINE ---
-  const advanceTime = (hours) => {
-    const updatedTime = new Date(simTime.getTime() + hours * 60 * 60 * 1000);
-    setSimTime(updatedTime);
-
-    // Simulate background updates on orders
-    setOrders(prev => {
-      return prev.map(order => {
-        // 1. Check Unpaid Payment Deadline (Overdue simulation)
-        if (order.status === 'UNPAID') {
-          const deadline = new Date(order.paymentDeadline);
-          if (updatedTime >= deadline) {
-            addLog(`Pesanan ${order.id} GAGAL dibayar sebelum tenggat waktu. Status: OVERDUE (DIBATALKAN).`);
-            return { ...order, status: 'CANCELLED', cancellationReason: 'Batas waktu pembayaran habis (Overdue)' };
-          }
-        }
-
-        // 2. Automate Delivery Steps for Paid orders
-        if (order.status === 'PAID') {
-          // Automatic Driver Assign after 1 hour simulation
-          const paidTime = new Date(order.createdAt).getTime();
-          const elapsedHours = (updatedTime.getTime() - paidTime) / (60 * 60 * 1000);
-
-          if (elapsedHours >= 1) {
-            addLog(`Simulasi: Driver menerima pesanan ${order.id}. Pengiriman dimulai.`);
-            return {
-              ...order,
-              status: 'SHIPPING',
-              driverId: 'u-4',
-              driverName: 'Driver Satu'
-            };
-          }
-        }
-
-        if (order.status === 'SHIPPING') {
-          // Automatic Delivery after 2 more hours
-          const shipTime = new Date(order.createdAt).getTime() + 1 * 60 * 60 * 1000; // 1 hr after create
-          const elapsedSinceShip = (updatedTime.getTime() - shipTime) / (60 * 60 * 1000);
-
-          if (elapsedSinceShip >= 2) {
-            addLog(`Simulasi: Pesanan ${order.id} telah tiba di tujuan.`);
-            return { ...order, status: 'DELIVERED' };
-          }
-        }
-
-        return order;
-      });
-    });
-
-    addLog(`Waktu simulasi dimajukan ${hours} jam menjadi: ${updatedTime.toLocaleString('id-ID')}`);
+  const advanceTime = async (hours) => {
+    try {
+      const res = await apiFetch(`/clock/advance?hours=${hours}`, { method: "POST" });
+      setSimTime(new Date(res.simTime));
+      
+      await loadCoreData();
+      await loadUserData();
+      
+      addLog(`Waktu simulasi dimajukan +${hours} jam.`);
+      
+      // Post detailed logs based on cron checks
+      if (res.updates) {
+        const u = res.updates;
+        if (u.overdue_cancelled > 0) addLog(`Log: ${u.overdue_cancelled} pesanan dibatalkan (Overdue).`);
+        if (u.delivery_started > 0) addLog(`Log: ${u.delivery_started} pesanan mulai dikirim kurir.`);
+        if (u.delivery_completed > 0) addLog(`Log: ${u.delivery_completed} pesanan sukses tiba di tujuan.`);
+      }
+      showNotification(`Simulasi: +${hours} jam waktu berjalan.`);
+    } catch (e) {
+      showNotification(e.message);
+    }
   };
 
   return (
@@ -508,6 +456,7 @@ export const AppProvider = ({ children }) => {
       simLogs,
       notification,
       login,
+      register,
       logout,
       switchUser,
       addToCart,
