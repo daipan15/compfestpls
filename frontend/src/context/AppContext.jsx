@@ -299,6 +299,7 @@ export const AppProvider = ({ children }) => {
           voucherCode: voucherCode || null
         })
       });
+      await loadCoreData();
       await loadUserData();
       addLog(`Pesanan baru dibuat: ${res.orderId}. Status: UNPAID.`);
       showNotification(`Pesanan ${res.orderId} sukses dibuat.`);
@@ -312,6 +313,7 @@ export const AppProvider = ({ children }) => {
   const payOrder = async (orderId) => {
     try {
       await apiFetch(`/orders/${orderId}/pay`, { method: "POST" });
+      await loadCoreData();
       await loadUserData();
       addLog(`Pesanan ${orderId} lunas dibayar.`);
       showNotification(`Pembayaran pesanan ${orderId} sukses!`);
@@ -327,6 +329,7 @@ export const AppProvider = ({ children }) => {
       await apiFetch(`/orders/${orderId}/cancel?reason=${encodeURIComponent(reason)}`, {
         method: "POST"
       });
+      await loadCoreData();
       await loadUserData();
       addLog(`Pesanan ${orderId} dibatalkan: ${reason}`);
       showNotification(`Pesanan ${orderId} dibatalkan.`);

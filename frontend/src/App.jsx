@@ -625,12 +625,12 @@ function AppContent() {
 
     const total = subtotal - discount;
 
-    const handleCheckoutSubmit = () => {
+    const handleCheckoutSubmit = async () => {
       if (!selectedAddrId) {
         showNotification("Pilih alamat pengiriman terlebih dahulu!");
         return;
       }
-      const orderId = checkout(selectedAddrId, voucherInput);
+      const orderId = await checkout(selectedAddrId, voucherInput);
       if (orderId) {
         setActiveTab('orders');
         setVoucherInput('');
