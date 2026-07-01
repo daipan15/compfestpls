@@ -144,7 +144,8 @@ export const AppProvider = ({ children }) => {
       setOrders([]);
       setWalletHistory([]);
     }
-  }, [currentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   // Vouchers list for Checkout UI (Static fallback for view)
   const vouchers = [
