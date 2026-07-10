@@ -1,28 +1,5 @@
 import React, { useContext, useState } from 'react';
 import { AppProvider, AppContext, formatRupiah } from './context/AppContext';
-import { 
-  ShoppingBag, 
-  ShoppingCart, 
-  Wallet, 
-  MapPin, 
-  Clock, 
-  ClipboardList, 
-  Plus, 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  Star, 
-  User, 
-  TrendingUp, 
-  Edit3, 
-  Search, 
-  ArrowLeft, 
-  Activity,
-  UserCheck,
-  Shield,
-  Truck,
-  LogOut
-} from 'lucide-react';
 
 function AppContent() {
   const {
@@ -64,15 +41,19 @@ function AppContent() {
   // View States
   const [activeTab, setActiveTab] = useState('shop');
   const [selectedProductId, setSelectedProductId] = useState(null);
-  
+
+  // Guest view states
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+
   // Form States
   const [newAddrTitle, setNewAddrTitle] = useState('');
   const [newAddrDetail, setNewAddrDetail] = useState('');
-  
+
   // Checkout States
   const [selectedAddrId, setSelectedAddrId] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
-  
+
   // Wallet Top-up States
   const [topUpAmount, setTopUpAmount] = useState('');
 
@@ -84,8 +65,11 @@ function AppContent() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Letakkan di dekat baris 66-67
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showPersonaDropdown, setShowPersonaDropdown] = useState(false);
+
   // Auth Form States
-  const [isSignUp, setIsSignUp] = useState(false);
   const [authName, setAuthName] = useState('');
   const [authUsername, setAuthUsername] = useState('');
   const [authEmail, setAuthEmail] = useState('');
@@ -95,6 +79,10 @@ function AppContent() {
   // Search/Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('');
+  const [sortBy, setSortBy] = useState('relevance');
 
   // Clock widget collapse
   const [clockCollapsed, setClockCollapsed] = useState(false);
@@ -110,6 +98,7 @@ function AppContent() {
       setActiveTab('shop');
     }
     setSelectedProductId(null);
+    setShowLoginModal(false);
   };
 
   const handleAuthSubmit = async (e) => {
@@ -152,298 +141,278 @@ function AppContent() {
     }
   };
 
-  if (!currentUser) {
-    return (
-      <div className="login-screen" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        background: '#090d16',
-        backgroundImage: 'radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 40%), radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.08), transparent 40%)',
-        padding: '24px'
-      }}>
-        <div className="card" style={{ width: '420px', padding: '36px', borderRadius: '16px', background: 'rgba(21, 30, 48, 0.4)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5)' }}>
-          
-          {/* Logo and Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', marginBottom: '16px' }}>
-              <ShoppingBag size={24} color="var(--color-primary)" />
-            </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '6px', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Bazaar CompFest
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center' }}>
-              Platform transaksi digital & marketplace terintegrasi
-            </p>
-          </div>
+  const handleLogout = () => {
+    logout();
+    setActiveTab('shop');
+    setSelectedProductId(null);
+  };
 
-          {/* Segment Control Tab Switcher */}
-          <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px', padding: '4px', marginBottom: '24px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-            <button 
-              type="button" 
-              onClick={() => setIsSignUp(false)} 
-              style={{ flex: 1, padding: '8px 12px', border: 'none', background: !isSignUp ? 'rgba(255,255,255,0.06)' : 'transparent', color: !isSignUp ? '#fff' : 'var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', transition: 'all 0.2s' }}
-            >
-              Masuk
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setIsSignUp(true)} 
-              style={{ flex: 1, padding: '8px 12px', border: 'none', background: isSignUp ? 'rgba(255,255,255,0.06)' : 'transparent', color: isSignUp ? '#fff' : 'var(--text-secondary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', transition: 'all 0.2s' }}
-            >
-              Daftar Akun
-            </button>
-          </div>
+  // Filter and Sort Products Logic
+  const getFilteredProducts = () => {
+    let result = [...products];
 
-          {/* Auth Form */}
-          <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {isSignUp && (
-              <>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Nama Lengkap</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="Masukkan nama lengkap Anda" 
-                    value={authName}
-                    onChange={(e) => setAuthName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Email</label>
-                  <input 
-                    type="email" 
-                    className="form-control" 
-                    placeholder="name@domain.com" 
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </>
-            )}
+    // Search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+    }
 
-            <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Username</label>
-              <input 
-                type="text" 
-                className="form-control" 
-                placeholder="Masukkan username" 
-                value={authUsername}
-                onChange={(e) => setAuthUsername(e.target.value)}
-                required
-              />
-            </div>
+    // Store filter
+    if (selectedStoreId) {
+      result = result.filter(p => p.storeId === selectedStoreId);
+    }
 
-            <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Password</label>
-              <input 
-                type="password" 
-                className="form-control" 
-                placeholder="Masukkan password" 
-                value={authPassword}
-                onChange={(e) => setAuthPassword(e.target.value)}
-                required
-              />
-            </div>
+    // Price range filters
+    if (minPrice) {
+      result = result.filter(p => p.price >= Number(minPrice));
+    }
+    if (maxPrice) {
+      result = result.filter(p => p.price <= Number(maxPrice));
+    }
 
-            {isSignUp && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Peran Akun (Dukungan Multi-role)</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {['buyer', 'seller', 'driver'].map((role) => {
-                    const active = authRoles.includes(role);
-                    return (
-                      <button
-                        type="button"
-                        key={role}
-                        onClick={() => handleRoleToggle(role)}
-                        className={`btn ${active ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ flex: 1, padding: '8px 12px', fontSize: '12px', borderRadius: '8px' }}
-                      >
-                        {role === 'buyer' ? 'Pembeli' : role === 'seller' ? 'Penjual' : 'Kurir'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+    // Rating filter
+    if (ratingFilter) {
+      result = result.filter(p => p.rating >= Number(ratingFilter));
+    }
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px', padding: '12px', borderRadius: '8px', fontSize: '14px', justifyContent: 'center' }}>
-              {isSignUp ? 'Daftar Sekarang' : 'Masuk ke Aplikasi'}
-            </button>
-          </form>
+    // Sorting
+    if (sortBy === 'price-low') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price-high') {
+      result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'rating') {
+      result.sort((a, b) => b.rating - a.rating);
+    }
 
-          {/* Quick Access Instant Demo Panel */}
-          <div style={{ marginTop: '28px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', textAlign: 'center', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-              Pilih Akun Demo Instan
-            </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-              {users.map(u => (
-                <button 
-                  type="button"
-                  key={u.id}
-                  onClick={() => handleDemoLogin(u)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11px',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    minWidth: '110px',
-                    gap: '2px'
-                  }}
-                  onMouseOver={(e) => { 
-                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.08)'; 
-                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)'; 
-                    e.currentTarget.style.color = '#fff'; 
-                  }}
-                  onMouseOut={(e) => { 
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; 
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)'; 
-                    e.currentTarget.style.color = 'var(--text-secondary)'; 
-                  }}
-                >
-                  <strong style={{ fontSize: '11px' }}>{u.name}</strong>
-                  <span style={{ fontSize: '9px', opacity: 0.6, textTransform: 'uppercase' }}>
-                    {u.role === 'buyer-seller' ? 'Multi-Role' : u.role === 'driver' ? 'Kurir' : u.role === 'buyer' ? 'Pembeli' : u.role === 'seller' ? 'Penjual' : u.role}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+    return result;
+  };
 
-        </div>
-      </div>
-    );
-  }
-
-  // Determine navbar items based on role
+  // Navigation Items
   const getNavItems = () => {
     const items = [];
     if (currentUser.role === 'buyer' || currentUser.role === 'buyer-seller') {
-      items.push({ id: 'shop', label: 'Belanja', icon: <ShoppingBag size={20} /> });
-      items.push({ id: 'cart', label: 'Keranjang', icon: <ShoppingCart size={20} />, badge: cart.length });
-      items.push({ id: 'orders', label: 'Pesanan Saya', icon: <ClipboardList size={20} /> });
-      items.push({ id: 'wallet', label: 'Dompet Saya', icon: <Wallet size={20} /> });
-      items.push({ id: 'addresses', label: 'Alamat', icon: <MapPin size={20} /> });
+      items.push({ id: 'shop', label: 'Marketplace', icon: 'storefront' });
+      items.push({ id: 'cart', label: 'Keranjang', icon: 'shopping_cart', badge: cart.reduce((acc, i) => acc + i.quantity, 0) });
+      items.push({ id: 'orders', label: 'Pesanan Saya', icon: 'receipt_long' });
+      items.push({ id: 'wallet', label: 'Dompet Saya', icon: 'payments' });
+      items.push({ id: 'addresses', label: 'Daftar Alamat', icon: 'map' });
     }
-    
+
     if (currentUser.role === 'seller' || currentUser.role === 'buyer-seller') {
-      items.push({ id: 'inventory', label: 'Kelola Produk', icon: <Edit3 size={20} /> });
-      items.push({ id: 'admin-orders', label: 'Pesanan Toko', icon: <ClipboardList size={20} /> });
-      items.push({ id: 'analytics', label: 'Statistik Toko', icon: <TrendingUp size={20} /> });
+      items.push({ id: 'inventory', label: 'Kelola Produk', icon: 'edit_document' });
+      items.push({ id: 'admin-orders', label: 'Pesanan Toko', icon: 'pending_actions' });
+      items.push({ id: 'analytics', label: 'Statistik Toko', icon: 'monitoring' });
     }
 
     if (currentUser.role === 'admin') {
-      items.push({ id: 'analytics', label: 'Analytics Panel', icon: <TrendingUp size={20} /> });
-      items.push({ id: 'admin-orders', label: 'Semua Pesanan', icon: <ClipboardList size={20} /> });
+      items.push({ id: 'analytics', label: 'Sistem Analytics', icon: 'admin_panel_settings' });
+      items.push({ id: 'admin-orders', label: 'Semua Pesanan', icon: 'list_alt' });
     }
 
     if (currentUser.role === 'driver') {
-      items.push({ id: 'driver-jobs', label: 'Order Pengantaran', icon: <Truck size={20} /> });
-      items.push({ id: 'wallet', label: 'Dompet Driver', icon: <Wallet size={20} /> });
+      items.push({ id: 'driver-jobs', label: 'Pekerjaan Kirim', icon: 'local_shipping' });
+      items.push({ id: 'wallet', label: 'Dompet Driver', icon: 'payments' });
     }
 
     return items;
   };
 
-  const currentStore = stores.find(s => s.id === currentUser.storeId);
+  const currentStore = stores.find(s => s.id === currentUser?.storeId);
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
-  // --- RENDERING VIEWS ---
+  // --- RENDERING TABS ---
 
   const renderShop = () => {
-    const filteredProducts = products.filter(p => {
-      const matchQuery = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchStore = selectedStoreId ? p.storeId === selectedStoreId : true;
-      return matchQuery && matchStore;
-    });
+    const filteredProducts = getFilteredProducts();
 
     return (
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <div>
-            <h1 className="text-gradient">Katalog Produk</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Cari barang elektronik & jajanan lokal favorit Anda</p>
-          </div>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Browse the Marketplace</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Discover high-quality logistics equipment and supplies from verified sellers globally.</p>
         </div>
 
-        {/* Filters */}
-        <div className="card" style={{ marginBottom: '24px', padding: '16px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
-            <Search style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)' }} size={18} />
-            <input 
-              type="text" 
-              placeholder="Cari produk..." 
-              className="form-control" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '40px' }}
-            />
-          </div>
-          <select 
-            className="form-control" 
-            value={selectedStoreId} 
-            onChange={(e) => setSelectedStoreId(e.target.value)}
-            style={{ width: '220px' }}
-          >
-            <option value="">Semua Toko</option>
-            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
+        <div className="flex flex-col lg:flex-row gap-lg">
+          {/* Sidebar Filters */}
+          <aside className="w-full lg:w-64 flex-shrink-0">
+            <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 sticky top-24">
+              <h2 className="font-title-lg text-title-lg text-primary mb-md border-b border-outline-variant/30 pb-sm">Filters</h2>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-3">
-          {filteredProducts.map(p => {
-            const store = stores.find(s => s.id === p.storeId);
-            return (
-              <div key={p.id} className="card card-primary-glow" style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-secondary)', fontWeight: 600 }}>{store?.name}</span>
-                  <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>Stok: {p.stock}</span>
-                </div>
-                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>{p.name}</h3>
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', flex: 1 }}>
-                  {p.description.substring(0, 80)}...
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '16px' }}>
-                  <Star size={16} fill="var(--color-warning)" color="var(--color-warning)" />
-                  <span style={{ fontSize: '14px', fontWeight: 600 }}>{p.rating}</span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({p.reviewsCount} Ulasan)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary)' }}>{formatRupiah(p.price)}</span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => { setSelectedProductId(p.id); setActiveTab('product-detail'); }}
-                    >
-                      Detail
-                    </button>
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      onClick={() => addToCart(p, 1)}
-                      disabled={p.stock === 0}
-                    >
-                      Beli
-                    </button>
-                  </div>
+              {/* Search */}
+              <div className="mb-md border-b border-outline-variant/30 pb-md">
+                <h3 className="font-label-md text-label-md text-primary mb-sm">Cari Produk</h3>
+                <div className="flex items-center bg-surface-container-low rounded-lg px-3 py-2 border border-outline-variant/50">
+                  <span className="material-symbols-outlined text-[18px] text-on-surface-variant mr-2">search</span>
+                  <input
+                    type="text"
+                    placeholder="Nama/deskripsi..."
+                    className="bg-transparent border-none text-on-background focus:ring-0 text-body-md w-full p-0 placeholder:text-on-surface-variant/60"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
               </div>
-            );
-          })}
+
+              {/* Store Filter */}
+              <div className="mb-md border-b border-outline-variant/30 pb-md">
+                <h3 className="font-label-md text-label-md text-primary mb-sm">Pilih Toko</h3>
+                <select
+                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                  value={selectedStoreId}
+                  onChange={(e) => setSelectedStoreId(e.target.value)}
+                >
+                  <option value="">Semua Toko</option>
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              {/* Price Range */}
+              <div className="mb-md border-b border-outline-variant/30 pb-md">
+                <h3 className="font-label-md text-label-md text-primary mb-sm">Rentang Harga (Rp)</h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-2 py-1.5 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                    placeholder="Min"
+                    type="number"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                  />
+                  <span className="text-on-surface-variant">-</span>
+                  <input
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-2 py-1.5 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                    placeholder="Max"
+                    type="number"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Store Rating */}
+              <div className="mb-md pb-xs">
+                <h3 className="font-label-md text-label-md text-primary mb-sm">Minimal Rating</h3>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-sm cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="ratingFilter"
+                      className="text-secondary focus:ring-secondary/20 bg-transparent h-4 w-4"
+                      checked={ratingFilter === ''}
+                      onChange={() => setRatingFilter('')}
+                    />
+                    <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Semua Bintang</span>
+                  </label>
+                  {[5, 4, 3].map(stars => (
+                    <label key={stars} className="flex items-center gap-sm cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="ratingFilter"
+                        className="text-secondary focus:ring-secondary/20 bg-transparent h-4 w-4"
+                        checked={Number(ratingFilter) === stars}
+                        onChange={() => setRatingFilter(stars.toString())}
+                      />
+                      <div className="flex text-amber-500 items-center">
+                        {[...Array(5)].map((_, idx) => (
+                          <span key={idx} className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: `'FILL' ${idx < stars ? 1 : 0}` }}>star</span>
+                        ))}
+                      </div>
+                      <span className="font-body-md text-body-md text-on-surface-variant ml-1">{stars}.0 & Up</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedStoreId('');
+                  setMinPrice('');
+                  setMaxPrice('');
+                  setRatingFilter('');
+                }}
+                className="w-full mt-2 bg-surface-container-high hover:bg-outline-variant/30 text-primary font-label-md text-label-md py-2 rounded-lg transition-colors font-semibold"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </aside>
+
+          {/* Product Grid */}
+          <div className="flex-1">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-md gap-3">
+              <span className="font-body-md text-body-md text-on-surface-variant">
+                Showing <strong className="text-primary">{filteredProducts.length}</strong> products
+              </span>
+              <div className="flex items-center gap-sm w-full sm:w-auto">
+                <span className="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Sort by:</span>
+                <select
+                  className="bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Highest Rating</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Catalog Grid */}
+            {filteredProducts.length === 0 ? (
+              <div className="bg-surface-container-lowest rounded-xl p-12 text-center border border-outline-variant/30">
+                <span className="material-symbols-outlined text-outline text-5xl mb-4">search_off</span>
+                <p className="text-on-surface-variant font-medium text-lg">Tidak ada produk yang sesuai dengan kriteria filter.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-md">
+                {filteredProducts.map(p => {
+                  const store = stores.find(s => s.id === p.storeId);
+                  return (
+                    <article key={p.id} className="bg-surface-container-lowest/90 backdrop-blur-sm rounded-xl overflow-hidden store-glow-card group flex flex-col h-full shadow-sm">
+                      {/* Product Image Fallback placeholder */}
+                      <div className="relative h-44 w-full bg-slate-50 flex items-center justify-center border-b border-outline-variant/10 overflow-hidden bg-store-grid">
+                        <span className="material-symbols-outlined text-[64px] text-secondary/35">package_2</span>
+                        <div className="absolute top-3 right-3 bg-secondary/80 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm">
+                          STOK: {p.stock}
+                        </div>
+                      </div>
+                      <div className="p-4 flex flex-col flex-1">
+                        <span className="text-[10px] bg-gradient-to-r from-secondary-container to-secondary text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider mb-2.5 inline-block w-fit shadow-sm">{store?.name}</span>
+                        <h3 className="font-body-md text-body-md font-bold text-primary mb-2 line-clamp-2 min-h-[48px]">{p.name}</h3>
+
+                        <div className="flex items-center gap-1 mb-4">
+                          <span className="material-symbols-outlined text-[16px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                          <span className="text-sm font-bold text-primary">{p.rating}</span>
+                          <span className="text-xs text-on-surface-variant">({p.reviewsCount} Ulasan)</span>
+                        </div>
+
+                        <div className="mt-auto flex items-center justify-between pt-3 border-t border-outline-variant/20">
+                          <div className="font-title-lg text-title-lg text-secondary font-bold">{formatRupiah(p.price)}</div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setSelectedProductId(p.id); setActiveTab('product-detail'); }}
+                              className="text-primary bg-surface-container-high hover:bg-outline-variant/30 font-label-md text-label-md px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1"
+                            >
+                              Detail
+                            </button>
+                            <button
+                              onClick={() => addToCart(p, 1)}
+                              disabled={p.stock === 0}
+                              className="bg-secondary hover:bg-secondary-container text-white font-label-md text-label-md px-3 py-1.5 rounded-lg font-semibold transition-all disabled:opacity-50"
+                            >
+                              Beli
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -455,71 +424,83 @@ function AppContent() {
 
     return (
       <div>
-        <button 
-          className="btn btn-secondary btn-sm" 
+        <button
+          className="bg-surface-container-lowest border border-outline-variant/30 text-primary font-semibold hover:bg-surface-container-low transition-colors px-4 py-2 rounded-lg flex items-center gap-2 mb-6"
           onClick={() => { setActiveTab('shop'); setSelectedProductId(null); }}
-          style={{ marginBottom: '24px' }}
         >
-          <ArrowLeft size={16} /> Kembali ke Katalog
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          Kembali ke Katalog
         </button>
 
-        <div className="card" style={{ padding: '32px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', gap: '32px' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <span className="badge" style={{ background: 'rgba(124, 58, 237, 0.1)', color: 'var(--color-primary)' }}>
+        <div className="bg-surface-container-lowest rounded-xl p-md md:p-lg border border-outline-variant/30 mb-6">
+          <div className="flex flex-col md:flex-row gap-lg">
+            <div className="w-full md:w-80 h-64 bg-slate-100 rounded-lg flex items-center justify-center border border-outline-variant/20">
+              <span className="material-symbols-outlined text-[96px] text-slate-300">package_2</span>
+            </div>
+
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-secondary-fixed text-on-secondary-fixed text-xs px-3 py-1 rounded-full font-bold uppercase">
                   {store?.name}
                 </span>
-                <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>⭐ {selectedProduct.rating} ({selectedProduct.reviewsCount} Ulasan)</span>
+                <div className="flex text-amber-500 items-center">
+                  <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  <span className="text-sm font-bold text-primary ml-1">{selectedProduct.rating} ({selectedProduct.reviewsCount} Ulasan)</span>
+                </div>
               </div>
-              <h1 style={{ fontSize: '32px', marginBottom: '16px' }} className="text-gradient">{selectedProduct.name}</h1>
-              <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
-                {selectedProduct.description}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-success)' }}>
-                  {formatRupiah(selectedProduct.price)}
-                </span>
-                <span style={{ color: 'var(--text-muted)' }}>|</span>
-                <span style={{ color: 'var(--text-secondary)' }}>Tersedia: {selectedProduct.stock} unit</span>
+
+              <h1 className="font-headline-lg text-headline-lg text-primary mb-4 leading-tight">{selectedProduct.name}</h1>
+
+              <div className="font-display-lg text-2xl text-secondary font-bold mb-6">
+                {formatRupiah(selectedProduct.price)}
               </div>
-              <button 
-                className="btn btn-primary"
-                onClick={() => addToCart(selectedProduct, 1)}
-                disabled={selectedProduct.stock === 0}
-                style={{ padding: '16px 32px' }}
-              >
-                Masukkan Keranjang
-              </button>
+
+              <div className="border-t border-b border-outline-variant/30 py-4 mb-6">
+                <h3 className="font-label-md text-label-md text-primary mb-2">Deskripsi Produk</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                  {selectedProduct.description}
+                </p>
+              </div>
+
+              <div className="mt-auto flex items-center gap-6">
+                <div>
+                  <span className="text-xs text-on-surface-variant block mb-1">Status Ketersediaan</span>
+                  <strong className="text-primary font-bold">{selectedProduct.stock > 0 ? `Tersedia: ${selectedProduct.stock} unit` : 'Stok Habis'}</strong>
+                </div>
+                <button
+                  onClick={() => addToCart(selectedProduct, 1)}
+                  disabled={selectedProduct.stock === 0}
+                  className="bg-primary text-on-primary hover:bg-primary-container font-semibold px-8 py-3 rounded-lg shadow-md transition-colors disabled:opacity-50"
+                >
+                  Masukkan Keranjang
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <div className="card">
-          <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>Ulasan Pembeli ({selectedProduct.reviews?.length || 0})</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Reviews */}
+        <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30">
+          <h2 className="font-title-lg text-title-lg text-primary mb-6 border-b border-outline-variant/20 pb-3">
+            Ulasan Pembeli ({selectedProduct.reviews?.length || 0})
+          </h2>
+          <div className="space-y-4">
             {selectedProduct.reviews && selectedProduct.reviews.length > 0 ? (
               selectedProduct.reviews.map((r, i) => (
-                <div key={i} style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{r.author}</span>
-                    <div style={{ display: 'flex', gap: '2px' }}>
+                <div key={i} className="border-b border-outline-variant/20 last:border-b-0 pb-4 last:pb-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-primary text-body-md">{r.author}</span>
+                    <div className="flex text-amber-500">
                       {[...Array(5)].map((_, idx) => (
-                        <Star 
-                          key={idx} 
-                          size={14} 
-                          fill={idx < r.rating ? 'var(--color-warning)' : 'transparent'} 
-                          color="var(--color-warning)" 
-                        />
+                        <span key={idx} className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: `'FILL' ${idx < r.rating ? 1 : 0}` }}>star</span>
                       ))}
                     </div>
                   </div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{r.comment}</p>
+                  <p className="font-body-md text-body-md text-on-surface-variant bg-surface-container-low/30 p-3 rounded-lg">{r.comment}</p>
                 </div>
               ))
             ) : (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>Belum ada ulasan untuk produk ini.</p>
+              <p className="text-on-surface-variant text-center py-6">Belum ada ulasan untuk produk ini.</p>
             )}
           </div>
         </div>
@@ -532,49 +513,56 @@ function AppContent() {
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Keranjang Belanja</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Tinjau item belanjaan Anda sebelum checkout</p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Keranjang Belanja</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Tinjau item belanjaan Anda sebelum melanjutkan ke proses checkout.</p>
+        </div>
 
         {cart.length === 0 ? (
-          <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-            <ShoppingCart size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>Keranjang Anda kosong.</p>
-            <button className="btn btn-primary" onClick={() => setActiveTab('shop')}>Belanja Sekarang</button>
+          <div className="bg-surface-container-lowest rounded-xl p-12 text-center border border-outline-variant/30">
+            <span className="material-symbols-outlined text-outline text-5xl mb-4">shopping_cart</span>
+            <p className="text-on-surface-variant font-medium text-lg mb-6">Keranjang Anda kosong.</p>
+            <button className="bg-primary text-on-primary hover:bg-primary-container px-6 py-2.5 rounded-lg font-semibold transition-colors" onClick={() => setActiveTab('shop')}>
+              Mulai Belanja
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
             {/* Cart List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="lg:col-span-2 space-y-4">
               {cart.map(item => (
-                <div key={item.product.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>{item.product.name}</h3>
-                    <span style={{ fontSize: '14px', color: 'var(--color-success)', fontWeight: 600 }}>{formatRupiah(item.product.price)}</span>
+                <div key={item.product.id} className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center border border-outline-variant/20 flex-shrink-0">
+                      <span className="material-symbols-outlined text-slate-400">package_2</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-primary text-body-md line-clamp-1">{item.product.name}</h3>
+                      <p className="text-xs text-on-surface-variant mt-0.5">Toko: {stores.find(s => s.id === item.product.storeId)?.name}</p>
+                      <span className="text-sm font-bold text-secondary block mt-1">{formatRupiah(item.product.price)}</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '4px' }}>
-                      <button 
-                        className="btn btn-secondary btn-sm" 
-                        style={{ padding: '2px 8px', borderRadius: '4px' }}
+                  <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 border-outline-variant/20">
+                    <div className="flex items-center border border-outline-variant rounded-lg overflow-hidden bg-surface">
+                      <button
+                        className="px-3 py-1 hover:bg-surface-container-high text-primary font-bold transition-colors"
                         onClick={() => updateCartQty(item.product.id, item.quantity - 1)}
                       >
                         -
                       </button>
-                      <span style={{ width: '24px', textAlign: 'center', fontWeight: 600 }}>{item.quantity}</span>
-                      <button 
-                        className="btn btn-secondary btn-sm" 
-                        style={{ padding: '2px 8px', borderRadius: '4px' }}
+                      <span className="w-10 text-center font-bold text-primary text-body-md">{item.quantity}</span>
+                      <button
+                        className="px-3 py-1 hover:bg-surface-container-high text-primary font-bold transition-colors"
                         onClick={() => updateCartQty(item.product.id, item.quantity + 1)}
                       >
                         +
                       </button>
                     </div>
-                    <button 
-                      className="btn btn-danger btn-sm" 
-                      style={{ padding: '8px' }}
+                    <button
+                      className="text-red-600 hover:bg-red-55/10 p-2 rounded-full border border-red-200 transition-colors flex items-center justify-center"
                       onClick={() => removeFromCart(item.product.id)}
                     >
-                      <Trash2 size={16} />
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
                     </button>
                   </div>
                 </div>
@@ -582,19 +570,24 @@ function AppContent() {
             </div>
 
             {/* Cart Summary */}
-            <div className="card" style={{ height: 'fit-content' }}>
-              <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Ringkasan Belanja</h2>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', color: 'var(--text-secondary)' }}>
-                <span>Subtotal ({cart.length} barang)</span>
-                <span>{formatRupiah(subtotal)}</span>
+            <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+              <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">Ringkasan Belanja</h2>
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between font-body-md text-body-md text-on-surface-variant">
+                  <span>Subtotal ({cart.length} barang)</span>
+                  <span className="font-medium text-primary">{formatRupiah(subtotal)}</span>
+                </div>
+                <div className="flex justify-between font-body-md text-body-md text-on-surface-variant">
+                  <span>Biaya Pengiriman</span>
+                  <span className="text-green-600 font-bold">GRATIS</span>
+                </div>
+                <div className="border-t border-outline-variant/30 pt-4 flex justify-between font-bold text-lg text-primary">
+                  <span>Total Estimasi</span>
+                  <span className="text-secondary">{formatRupiah(subtotal)}</span>
+                </div>
               </div>
-              <div style={{ borderTop: '1px solid var(--border-color)', margin: '16px 0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                <span>Total Estimasi</span>
-                <span style={{ color: 'var(--color-primary)' }}>{formatRupiah(subtotal)}</span>
-              </div>
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', padding: '14px' }}
+              <button
+                className="w-full bg-primary hover:bg-primary-container text-on-primary py-3 rounded-lg font-bold transition-colors shadow-md"
                 onClick={() => {
                   setSelectedAddrId(addresses[0]?.id || '');
                   setActiveTab('checkout');
@@ -611,7 +604,7 @@ function AppContent() {
 
   const renderCheckout = () => {
     const subtotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-    
+
     // Voucher Logic
     let discount = 0;
     const appliedVoucher = vouchers.find(v => v.code === voucherInput && v.active);
@@ -639,47 +632,46 @@ function AppContent() {
 
     return (
       <div>
-        <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('cart')} style={{ marginBottom: '24px' }}>
-          <ArrowLeft size={16} /> Kembali ke Keranjang
+        <button
+          className="bg-surface-container-lowest border border-outline-variant/30 text-primary font-semibold hover:bg-surface-container-low transition-colors px-4 py-2 rounded-lg flex items-center gap-2 mb-6"
+          onClick={() => setActiveTab('cart')}
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          Kembali ke Keranjang
         </button>
 
-        <h1 className="text-gradient" style={{ marginBottom: '24px' }}>Checkout</h1>
+        <h1 className="font-headline-lg text-headline-lg text-primary mb-6">Proses Checkout</h1>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+          <div className="lg:col-span-2 space-y-6">
             {/* Alamat Pengiriman */}
-            <div className="card">
-              <h2 style={{ fontSize: '18px', marginBottom: '16px' }} className="text-gradient">1. Pilih Alamat Pengiriman</h2>
+            <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30">
+              <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">1. Alamat Pengiriman</h2>
               {addresses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '16px' }}>
-                  <p style={{ color: 'var(--text-secondary)', marginBottom: '12px' }}>Belum ada alamat terdaftar.</p>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('addresses')}>Tambah Alamat</button>
+                <div className="text-center py-6">
+                  <p className="text-on-surface-variant font-medium mb-4">Belum ada alamat terdaftar.</p>
+                  <button className="bg-surface-container-high hover:bg-outline-variant/30 text-primary font-semibold px-4 py-2 rounded-lg transition-colors" onClick={() => setActiveTab('addresses')}>
+                    Tambah Alamat Baru
+                  </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="space-y-3">
                   {addresses.map(addr => (
-                    <label 
-                      key={addr.id} 
-                      className="card" 
-                      style={{ 
-                        display: 'flex', 
-                        gap: '12px', 
-                        padding: '16px', 
-                        cursor: 'pointer',
-                        borderColor: selectedAddrId === addr.id ? 'var(--color-primary)' : 'var(--border-color)'
-                      }}
+                    <label
+                      key={addr.id}
+                      className={`flex gap-3 p-4 rounded-xl border cursor-pointer transition-all ${selectedAddrId === addr.id ? 'border-secondary bg-secondary-fixed/10' : 'border-outline-variant/40 hover:bg-surface-container-low'}`}
                     >
-                      <input 
-                        type="radio" 
-                        name="checkout_address" 
-                        value={addr.id} 
+                      <input
+                        type="radio"
+                        name="checkout_address"
+                        value={addr.id}
                         checked={selectedAddrId === addr.id}
                         onChange={() => setSelectedAddrId(addr.id)}
-                        style={{ marginTop: '4px' }}
+                        className="text-secondary focus:ring-secondary/20 h-4 w-4 mt-1"
                       />
                       <div>
-                        <strong style={{ display: 'block', marginBottom: '4px' }}>{addr.title}</strong>
-                        <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{addr.detail}</span>
+                        <strong className="block text-primary text-body-md font-bold">{addr.title}</strong>
+                        <span className="text-sm text-on-surface-variant">{addr.detail}</span>
                       </div>
                     </label>
                   ))}
@@ -688,76 +680,77 @@ function AppContent() {
             </div>
 
             {/* Voucher Diskon */}
-            <div className="card">
-              <h2 style={{ fontSize: '18px', marginBottom: '16px' }} className="text-gradient">2. Gunakan Voucher Diskon</h2>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Masukkan kode voucher (e.g. SEAPEDIA10, PROMOAWAL)" 
-                  className="form-control"
+            <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30">
+              <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">2. Voucher Diskon</h2>
+              <div className="flex gap-3 mb-4">
+                <input
+                  type="text"
+                  placeholder="Masukkan kode voucher..."
+                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                   value={voucherInput}
                   onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
                 />
               </div>
               {appliedVoucher ? (
-                <p style={{ color: 'var(--color-success)', fontSize: '14px', marginTop: '12px', fontWeight: 600 }}>
-                  Voucher Berhasil Digunakan! Diskon: {formatRupiah(discount)}
+                <p className="text-green-600 font-bold text-sm bg-green-50 p-2.5 rounded-lg border border-green-200 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                  Voucher "{appliedVoucher.code}" berhasil dipasang! Diskon: {formatRupiah(discount)}
                 </p>
               ) : voucherInput ? (
-                <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginTop: '12px' }}>
-                  Voucher tidak valid atau minimal pembelian tidak terpenuhi.
+                <p className="text-red-600 text-sm font-medium">
+                  Voucher tidak valid atau minimal belanja tidak tercapai.
                 </p>
               ) : (
-                <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {vouchers.map(v => (
-                    <button 
-                      key={v.code}
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setVoucherInput(v.code)}
-                      style={{ fontSize: '12px', padding: '4px 10px' }}
-                    >
-                      {v.code} (Potongan {v.discountType === 'percent' ? `${v.value}%` : formatRupiah(v.value)})
-                    </button>
-                  ))}
+                <div>
+                  <span className="text-xs text-on-surface-variant block mb-2 font-medium">Voucher Tersedia (Klik untuk salin):</span>
+                  <div className="flex gap-2 flex-wrap">
+                    {vouchers.map(v => (
+                      <button
+                        key={v.code}
+                        onClick={() => setVoucherInput(v.code)}
+                        className="bg-surface-container-high hover:bg-outline-variant/30 text-primary border border-outline-variant/35 text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
+                      >
+                        {v.code} ({v.discountType === 'percent' ? `${v.value}%` : formatRupiah(v.value)} off)
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
           {/* Rincian Harga & Bayar */}
-          <div className="card" style={{ height: 'fit-content' }}>
-            <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Rincian Tagihan</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between' }}>
+          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+            <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">Rincian Pembayaran</h2>
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between font-body-md text-body-md text-on-surface-variant">
                 <span>Subtotal Produk</span>
-                <span>{formatRupiah(subtotal)}</span>
+                <span className="font-medium text-primary">{formatRupiah(subtotal)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between' }}>
+              <div className="flex justify-between font-body-md text-body-md text-on-surface-variant">
                 <span>Biaya Pengiriman</span>
-                <span style={{ color: 'var(--color-success)' }}>GRATIS</span>
+                <span className="text-green-600 font-bold">GRATIS</span>
               </div>
               {discount > 0 && (
-                <div style={{ display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between', color: 'var(--color-success)' }}>
-                  <span>Diskon Voucher</span>
+                <div className="flex justify-between font-body-md text-body-md text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
+                  <span>Potongan Voucher</span>
                   <span>-{formatRupiah(discount)}</span>
                 </div>
               )}
-            </div>
-            
-            <div style={{ borderTop: '1px solid var(--border-color)', padding: '16px 0', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '18px' }}>
-              <span>Total Bayar</span>
-              <span style={{ color: 'var(--color-primary)' }}>{formatRupiah(total)}</span>
+              <div className="border-t border-outline-variant/30 pt-4 flex justify-between font-bold text-lg text-primary">
+                <span>Total Pembayaran</span>
+                <span className="text-secondary">{formatRupiah(total)}</span>
+              </div>
             </div>
 
-            <button 
-              className="btn btn-primary" 
-              style={{ width: '100%', padding: '14px', marginBottom: '12px' }}
+            <button
+              className="w-full bg-secondary hover:bg-secondary-container text-white py-3 rounded-lg font-bold transition-colors shadow-md"
               onClick={handleCheckoutSubmit}
             >
               Buat Pesanan
             </button>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-              Dengan menekan tombol, pesanan Anda akan dibuat dengan status UNPAID. Anda memiliki batas waktu 2 jam simulasi untuk membayar menggunakan Dompet.
+            <p className="text-[11px] text-on-surface-variant/80 text-center mt-4 bg-slate-50 p-2.5 rounded-lg border border-slate-200 leading-relaxed">
+              Dengan membuat pesanan, status order akan berubah menjadi UNPAID. Lakukan pembayaran dari tab 'Pesanan Saya' menggunakan Saldo Dompet Anda.
             </p>
           </div>
         </div>
@@ -770,150 +763,153 @@ function AppContent() {
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Pesanan Saya</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Lacak status pengiriman dan bayar tagihan Anda</p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Pesanan Saya</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Pantau status transaksi, lakukan pembayaran saldo, dan lacak pengiriman driver.</p>
+        </div>
 
         {buyerOrders.length === 0 ? (
-          <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-            <ClipboardList size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>Belum ada riwayat pesanan.</p>
-            <button className="btn btn-primary" onClick={() => setActiveTab('shop')}>Belanja Sekarang</button>
+          <div className="bg-surface-container-lowest rounded-xl p-12 text-center border border-outline-variant/30">
+            <span className="material-symbols-outlined text-outline text-5xl mb-4">list_alt</span>
+            <p className="text-on-surface-variant font-medium text-lg mb-6">Belum ada riwayat transaksi.</p>
+            <button className="bg-primary text-on-primary hover:bg-primary-container px-6 py-2.5 rounded-lg font-semibold transition-colors" onClick={() => setActiveTab('shop')}>
+              Belanja Sekarang
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="space-y-6">
             {buyerOrders.map(order => {
-              // Calculate remaining payment time limit (2 hours from created)
+              const statusColors = {
+                'UNPAID': 'bg-amber-100 text-amber-800 border-amber-250',
+                'PAID': 'bg-blue-100 text-blue-800 border-blue-200',
+                'SHIPPING': 'bg-sky-100 text-sky-800 border-sky-200',
+                'DELIVERED': 'bg-green-100 text-green-800 border-green-200',
+                'CANCELLED': 'bg-red-100 text-red-800 border-red-200'
+              };
+
               const deadline = new Date(order.paymentDeadline);
               const isOverdue = simTime >= deadline;
-              
+
               return (
-                <div key={order.id} className="card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <div key={order.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden shadow-sm">
+                  {/* Order Top Bar */}
+                  <div className="bg-slate-55/40 px-md py-4 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <strong style={{ fontSize: '18px', marginRight: '12px' }}>{order.id}</strong>
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Dibuat: {new Date(order.createdAt).toLocaleString('id-ID')}</span>
+                      <span className="text-xs text-on-surface-variant font-medium">ID Pesanan</span>
+                      <strong className="block text-primary text-body-md font-extrabold">{order.id}</strong>
                     </div>
-                    <div>
-                      {order.status === 'UNPAID' && <span className="badge badge-unpaid">Menunggu Pembayaran</span>}
-                      {order.status === 'PAID' && <span className="badge badge-pending">Diproses Penjual</span>}
-                      {order.status === 'SHIPPING' && <span className="badge badge-shipping">Sedang Dikirim</span>}
-                      {order.status === 'DELIVERED' && <span className="badge badge-delivered">Selesai</span>}
-                      {order.status === 'CANCELLED' && <span className="badge badge-cancelled">Dibatalkan</span>}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-xs text-on-surface-variant">Dibuat: {new Date(order.createdAt).toLocaleString('id-ID')}</span>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColors[order.status] || 'bg-slate-100 text-slate-800'}`}>
+                        {order.status}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Order Details */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px' }}>
-                    <div>
-                      <h4 style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>Daftar Produk:</h4>
-                      <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {/* Order Body */}
+                  <div className="p-md grid grid-cols-1 lg:grid-cols-3 gap-lg">
+                    {/* Left: Products & Details */}
+                    <div className="lg:col-span-2 space-y-4">
+                      <h4 className="font-label-md text-label-md text-primary">Item Pesanan:</h4>
+                      <ul className="divide-y divide-outline-variant/20 border-t border-b border-outline-variant/15 py-1">
                         {order.items.map(item => (
-                          <li key={item.product.id} style={{ fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{item.product.name} (x{item.quantity})</span>
-                            <span>{formatRupiah(item.product.price * item.quantity)}</span>
+                          <li key={item.product.id} className="py-2.5 flex justify-between text-body-md font-body-md text-on-background">
+                            <span className="font-medium">{item.product.name} <strong className="text-secondary ml-1">x{item.quantity}</strong></span>
+                            <span className="font-bold text-primary">{formatRupiah(item.product.price * item.quantity)}</span>
                           </li>
                         ))}
                       </ul>
-                      <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        📍 <strong>Alamat:</strong> {order.address}
-                      </p>
-                      {order.driverName && (
-                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                          🚚 <strong>Driver:</strong> {order.driverName}
-                        </p>
-                      )}
-                      {order.cancellationReason && (
-                        <p style={{ fontSize: '14px', color: 'var(--color-danger)', fontWeight: 600 }}>
-                          ❌ <strong>Alasan Batal:</strong> {order.cancellationReason}
-                        </p>
-                      )}
+                      <div className="space-y-1 text-xs text-on-surface-variant">
+                        <p>📍 <strong>Alamat Kirim:</strong> {order.address}</p>
+                        {order.driverName && <p>🚚 <strong>Driver Kurir:</strong> {order.driverName}</p>}
+                        {order.cancellationReason && <p className="text-red-600 font-bold">❌ <strong>Alasan Batal:</strong> {order.cancellationReason}</p>}
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: '1px solid var(--border-color)', paddingLeft: '24px' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    {/* Right: Payment Billing & Actions */}
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-outline-variant/20 flex flex-col justify-between h-full">
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm text-on-surface-variant">
                           <span>Subtotal:</span>
                           <span>{formatRupiah(order.subtotal)}</span>
                         </div>
                         {order.discount > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-success)', marginBottom: '8px' }}>
-                            <span>Diskon:</span>
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Diskon Voucher:</span>
                             <span>-{formatRupiah(order.discount)}</span>
                           </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '16px', marginTop: '12px' }}>
-                          <span>Total:</span>
-                          <span style={{ color: 'var(--color-success)' }}>{formatRupiah(order.total)}</span>
+                        <div className="flex justify-between font-bold text-body-md text-primary pt-2 border-t border-outline-variant/25">
+                          <span>Total Tagihan:</span>
+                          <span className="text-secondary">{formatRupiah(order.total)}</span>
                         </div>
                       </div>
 
-                      {/* Action buttons based on status */}
-                      <div style={{ marginTop: '20px' }}>
+                      {/* Payment Actions */}
+                      <div className="space-y-2 mt-auto">
                         {order.status === 'UNPAID' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ fontSize: '12px', color: 'var(--color-warning)', marginBottom: '4px', textAlign: 'center' }}>
-                              ⏰ Batas Bayar: <br /><strong>{new Date(order.paymentDeadline).toLocaleString('id-ID')}</strong>
+                          <div className="space-y-2 text-center">
+                            <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200 leading-tight">
+                              ⏰ Batas Bayar: <br />
+                              <strong className="font-bold">{new Date(order.paymentDeadline).toLocaleString('id-ID')}</strong>
                             </div>
-                            <button 
-                              className="btn btn-success btn-sm" 
+                            <button
+                              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold text-sm transition-colors"
                               onClick={() => payOrder(order.id)}
-                              style={{ width: '100%' }}
                             >
                               Bayar Sekarang
                             </button>
-                            <button 
-                              className="btn btn-secondary btn-sm" 
+                            <button
+                              className="w-full bg-transparent hover:bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg font-semibold text-xs transition-colors"
                               onClick={() => cancelOrder(order.id, 'Dibatalkan oleh pembeli')}
-                              style={{ width: '100%' }}
                             >
-                              Batalkan
+                              Batalkan Pesanan
                             </button>
                           </div>
                         )}
 
                         {order.status === 'DELIVERED' && (
-                          <div>
-                            <p style={{ fontSize: '13px', color: 'var(--color-success)', fontWeight: 600, marginBottom: '8px', textAlign: 'center' }}>
-                              🎉 Paket telah Anda terima!
+                          <div className="space-y-3">
+                            <p className="text-xs text-green-700 font-bold bg-green-50 p-2 rounded text-center border border-green-200 flex items-center justify-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                              Paket belanjaan telah diterima!
                             </p>
-                            
-                            {/* Review Box for Items */}
+
+                            {/* Reviews list input */}
                             {order.items.map(item => {
                               const alreadyReviewed = order.reviewedProductIds?.includes(item.product.id);
-                              
+
                               if (alreadyReviewed) {
                                 return (
-                                  <div key={item.product.id} style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '8px' }}>
-                                    ✓ Ulasan {item.product.name} telah dikirim.
+                                  <div key={item.product.id} className="text-xs text-on-surface-variant bg-slate-100 p-2 rounded text-center">
+                                    ✓ Ulasan produk '{item.product.name}' terkirim.
                                   </div>
                                 );
                               }
 
                               return (
-                                <div key={item.product.id} className="card" style={{ padding: '12px', marginTop: '8px', background: 'rgba(255,255,255,0.02)' }}>
-                                  <span style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Beri Ulasan: {item.product.name}</span>
-                                  <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
-                                    {[1,2,3,4,5].map(star => (
-                                      <Star 
-                                        key={star} 
-                                        size={16} 
-                                        fill={star <= reviewRating ? 'var(--color-warning)' : 'transparent'} 
-                                        color="var(--color-warning)" 
+                                <div key={item.product.id} className="bg-white p-3 rounded-lg border border-outline-variant/30 space-y-2">
+                                  <span className="text-xs font-bold text-primary block leading-tight">Beri Ulasan: {item.product.name}</span>
+                                  <div className="flex gap-1 text-amber-500">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                      <span
+                                        key={star}
                                         onClick={() => setReviewRating(star)}
-                                        style={{ cursor: 'pointer' }}
-                                      />
+                                        className="material-symbols-outlined text-[18px] cursor-pointer"
+                                        style={{ fontVariationSettings: `'FILL' ${star <= reviewRating ? 1 : 0}` }}
+                                      >
+                                        star
+                                      </span>
                                     ))}
                                   </div>
-                                  <input 
-                                    type="text" 
-                                    placeholder="Ulasan Anda..." 
-                                    className="form-control" 
-                                    style={{ fontSize: '12px', padding: '6px 8px', marginBottom: '6px' }}
+                                  <input
+                                    type="text"
+                                    placeholder="Ulasan Anda..."
+                                    className="w-full bg-transparent border border-outline-variant rounded px-2 py-1 text-xs text-primary focus:ring-1 focus:ring-secondary/20"
                                     onChange={(e) => setReviewComment(e.target.value)}
                                   />
-                                  <button 
-                                    className="btn btn-primary btn-sm" 
-                                    style={{ width: '100%', fontSize: '11px', padding: '4px' }}
+                                  <button
+                                    className="w-full bg-primary hover:bg-primary-container text-on-primary text-xs font-bold py-1.5 rounded transition-colors"
                                     onClick={() => {
                                       addProductReview(order.id, item.product.id, reviewRating, reviewComment || 'Bagus sekali!');
                                       setReviewComment('');
@@ -943,27 +939,26 @@ function AppContent() {
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Dompet Digital</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Simulasikan pembayaran instan dan top-up saldo Anda</p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Dompet Digital</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Simulasikan pengisian saldo dan lihat riwayat detail mutasi keuangan transaksi Anda.</p>
+        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
           {/* Transaction History */}
-          <div className="card">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Riwayat Transaksi</h2>
+          <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+            <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">Riwayat Transaksi</h2>
             {userWalletTx.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>Belum ada aktivitas transaksi.</p>
+              <p className="text-on-surface-variant text-center py-10 font-medium">Belum ada riwayat transaksi keuangan.</p>
             ) : (
-              <div className="table-list">
+              <div className="divide-y divide-outline-variant/20">
                 {userWalletTx.map(tx => (
-                  <div key={tx.id} className="table-row">
+                  <div key={tx.id} className="py-3 flex justify-between items-center">
                     <div>
-                      <strong style={{ display: 'block', fontSize: '15px' }}>{tx.description}</strong>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(tx.timestamp).toLocaleString('id-ID')}</span>
+                      <strong className="block text-primary text-body-md font-bold">{tx.description}</strong>
+                      <span className="text-xs text-on-surface-variant">{new Date(tx.timestamp).toLocaleString('id-ID')}</span>
                     </div>
-                    <strong style={{ 
-                      fontSize: '16px', 
-                      color: tx.amount > 0 ? 'var(--color-success)' : 'var(--color-danger)'
-                    }}>
+                    <strong className={`text-body-lg font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {tx.amount > 0 ? '+' : ''}{formatRupiah(tx.amount)}
                     </strong>
                   </div>
@@ -973,50 +968,54 @@ function AppContent() {
           </div>
 
           {/* Balance & Topup card */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div className="card" style={{ background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(13, 20, 35, 0.9) 100%)', borderColor: 'var(--color-primary)' }}>
-              <span style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Saldo Dompet Aktif</span>
-              <h1 style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-success)', marginBottom: '8px' }}>
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-primary to-slate-900 text-white rounded-xl p-6 border border-outline/20 shadow-md">
+              <span className="text-sm opacity-80 block mb-1">Total Saldo Dompet</span>
+              <h1 className="text-3xl font-black text-green-400 mb-4">
                 {formatRupiah(currentUser.walletBalance)}
               </h1>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ID Dompet: {currentUser.id}</span>
+              <span className="text-xs opacity-60">ID Rekening Dompet: WALLET-{currentUser.id}</span>
             </div>
 
-            <div className="card">
-              <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Isi Saldo (Top-Up)</h3>
-              <div className="form-group">
-                <label>Pilih Nominal Cepat</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                  {[50000, 100000, 500000].map(val => (
-                    <button 
-                      key={val} 
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setTopUpAmount(val)}
-                    >
-                      {formatRupiah(val)}
-                    </button>
-                  ))}
+            <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30">
+              <h3 className="font-title-lg text-title-lg text-primary mb-4">Isi Saldo (Top-Up)</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-2">Pilih Nominal Instan:</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[50000, 100000, 500000].map(val => (
+                      <button
+                        key={val}
+                        className="bg-surface-container-high hover:bg-outline-variant/35 text-primary text-xs font-bold py-2 rounded-lg transition-colors border border-outline-variant/20"
+                        onClick={() => setTopUpAmount(val)}
+                      >
+                        {formatRupiah(val)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <input 
-                  type="number" 
-                  placeholder="Jumlah isi saldo custom..." 
-                  className="form-control"
-                  value={topUpAmount}
-                  onChange={(e) => setTopUpAmount(e.target.value)}
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-2">Jumlah Custom (Rp):</label>
+                  <input
+                    type="number"
+                    placeholder="Masukkan jumlah saldo..."
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                    value={topUpAmount}
+                    onChange={(e) => setTopUpAmount(e.target.value)}
+                  />
+                </div>
+                <button
+                  className="w-full bg-secondary hover:bg-secondary-container text-white py-2.5 rounded-lg font-bold text-sm transition-colors shadow-md"
+                  onClick={() => {
+                    if (topUpAmount > 0) {
+                      topUpWallet(topUpAmount);
+                      setTopUpAmount('');
+                    }
+                  }}
+                >
+                  Isi Saldo Sekarang
+                </button>
               </div>
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%' }}
-                onClick={() => {
-                  if (topUpAmount > 0) {
-                    topUpWallet(topUpAmount);
-                    setTopUpAmount('');
-                  }
-                }}
-              >
-                Top-Up Sekarang
-              </button>
             </div>
           </div>
         </div>
@@ -1037,28 +1036,30 @@ function AppContent() {
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Alamat Pengiriman</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Kelola daftar alamat untuk memudahkan pengiriman pesanan</p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Alamat Pengiriman</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Simpan alamat-alamat pengiriman Anda untuk mempermudah proses checkout pembelian barang.</p>
+        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
           {/* Address List */}
-          <div className="card">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Daftar Alamat Saya</h2>
+          <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+            <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">Daftar Alamat Saya</h2>
             {userAddresses.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>Belum ada alamat terdaftar.</p>
+              <p className="text-on-surface-variant text-center py-10 font-medium">Belum ada alamat terdaftar.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="space-y-4">
                 {userAddresses.map(addr => (
-                  <div key={addr.id} className="card" style={{ padding: '16px', display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={addr.id} className="bg-surface-container-low/40 rounded-xl p-4 border border-outline-variant/20 flex justify-between items-center gap-4">
                     <div>
-                      <strong style={{ display: 'block', fontSize: '16px', marginBottom: '4px' }}>{addr.title}</strong>
-                      <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{addr.detail}</span>
+                      <strong className="block text-primary text-body-md font-bold">{addr.title}</strong>
+                      <span className="text-sm text-on-surface-variant block mt-0.5">{addr.detail}</span>
                     </div>
-                    <button 
-                      className="btn btn-danger btn-sm"
+                    <button
+                      className="text-red-650 hover:bg-red-50 p-2 rounded-full border border-red-200 transition-colors flex items-center justify-center flex-shrink-0"
                       onClick={() => deleteAddress(addr.id)}
                     >
-                      <Trash2 size={16} />
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
                 ))}
@@ -1067,32 +1068,32 @@ function AppContent() {
           </div>
 
           {/* Add Address Form */}
-          <div className="card">
-            <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>Tambah Alamat Baru</h3>
-            <form onSubmit={handleAddAddrSubmit}>
-              <div className="form-group">
-                <label>Label Alamat</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Rumah, Kantor, Kosan" 
-                  className="form-control"
+          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+            <h3 className="font-title-lg text-title-lg text-primary mb-4">Tambah Alamat Baru</h3>
+            <form onSubmit={handleAddAddrSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-2">Label Alamat</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rumah, Kantor, Kosan..."
+                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                   value={newAddrTitle}
                   onChange={(e) => setNewAddrTitle(e.target.value)}
                   required
                 />
               </div>
-              <div className="form-group">
-                <label>Alamat Lengkap</label>
-                <textarea 
-                  placeholder="Nama jalan, nomor rumah, RT/RW, kecamatan, kota..." 
-                  className="form-control"
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-2">Alamat Lengkap</label>
+                <textarea
+                  placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kota..."
+                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                   value={newAddrDetail}
                   onChange={(e) => setNewAddrDetail(e.target.value)}
                   rows="4"
                   required
                 ></textarea>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+              <button type="submit" className="w-full bg-primary hover:bg-primary-container text-on-primary py-2.5 rounded-lg font-bold text-sm transition-colors shadow-md">
                 Simpan Alamat
               </button>
             </form>
@@ -1102,10 +1103,9 @@ function AppContent() {
     );
   };
 
-  // --- SELLER / ADMIN PANEL VIEWS ---
+  // --- SELLER / ADMIN VIEWS ---
 
   const renderInventory = () => {
-    // Show only products belonging to seller store
     const sellerProducts = products.filter(p => p.storeId === currentUser.storeId);
 
     const handleProductSubmit = (e) => {
@@ -1118,7 +1118,7 @@ function AppContent() {
       } else {
         addProduct(productForm);
       }
-      
+
       setProductForm({ name: '', price: '', stock: '', description: '' });
     };
 
@@ -1134,35 +1134,37 @@ function AppContent() {
 
     return (
       <div>
-        <div style={{ marginBottom: '24px' }}>
-          <h1 className="text-gradient">Kelola Produk Toko</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Toko Anda: <strong>{currentStore?.name}</strong></p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Kelola Produk Toko</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Toko: <strong className="text-secondary">{currentStore?.name}</strong>. Atur katalog penawaran logistik Anda.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '24px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
           {/* Products List */}
-          <div className="card">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Katalog Produk Toko Anda</h2>
+          <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+            <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">Daftar Produk Toko</h2>
             {sellerProducts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>Toko Anda belum memiliki produk untuk dijual.</p>
+              <p className="text-on-surface-variant text-center py-10 font-medium">Toko Anda belum memiliki produk untuk dipasarkan.</p>
             ) : (
-              <div className="table-list">
+              <div className="divide-y divide-outline-variant/15">
                 {sellerProducts.map(p => (
-                  <div key={p.id} className="table-row">
-                    <div style={{ flex: 1 }}>
-                      <strong style={{ display: 'block', fontSize: '16px' }}>{p.name}</strong>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginRight: '12px' }}>Harga: {formatRupiah(p.price)}</span>
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Stok: {p.stock}</span>
+                  <div key={p.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <strong className="block text-primary text-body-md font-bold">{p.name}</strong>
+                      <div className="flex gap-3 text-xs text-on-surface-variant mt-1">
+                        <span>Harga: <strong className="text-secondary">{formatRupiah(p.price)}</strong></span>
+                        <span>Stok: <strong>{p.stock}</strong></span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        className="btn btn-secondary btn-sm"
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-surface-container-high hover:bg-outline-variant/30 text-primary text-xs font-semibold px-3.5 py-1.5 rounded transition-all"
                         onClick={() => handleEditProductClick(p)}
                       >
                         Edit
                       </button>
-                      <button 
-                        className="btn btn-danger btn-sm"
+                      <button
+                        className="bg-transparent hover:bg-red-50 text-red-650 border border-red-200 text-xs font-semibold px-3.5 py-1.5 rounded transition-all"
                         onClick={() => deleteProduct(p.id)}
                       >
                         Hapus
@@ -1175,65 +1177,65 @@ function AppContent() {
           </div>
 
           {/* Add / Edit Product Form */}
-          <div className="card">
-            <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>
-              {editingProductId ? 'Edit Produk' : 'Tambah Produk Baru'}
+          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 h-fit">
+            <h3 className="font-title-lg text-title-lg text-primary mb-4">
+              {editingProductId ? 'Edit Data Produk' : 'Pasarkan Produk Baru'}
             </h3>
-            <form onSubmit={handleProductSubmit}>
-              <div className="form-group">
-                <label>Nama Produk</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Headphone Bluetooth" 
-                  className="form-control"
+            <form onSubmit={handleProductSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-2">Nama Produk</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Standard 20ft Container..."
+                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                   value={productForm.name}
-                  onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                   required
                 />
               </div>
-              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label>Harga (Rp)</label>
-                  <input 
-                    type="number" 
-                    placeholder="35000" 
-                    className="form-control"
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-2">Harga (Rp)</label>
+                  <input
+                    type="number"
+                    placeholder="Nominal rupiah..."
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                     value={productForm.price}
-                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                     required
                   />
                 </div>
                 <div>
-                  <label>Jumlah Stok</label>
-                  <input 
-                    type="number" 
-                    placeholder="20" 
-                    className="form-control"
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-2">Stok Awal</label>
+                  <input
+                    type="number"
+                    placeholder="Unit..."
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                     value={productForm.stock}
-                    onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                     required
                   />
                 </div>
               </div>
-              <div className="form-group">
-                <label>Deskripsi Produk</label>
-                <textarea 
-                  placeholder="Tulis spesifikasi dan kelebihan produk..." 
-                  className="form-control"
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-2">Deskripsi Spesifikasi</label>
+                <textarea
+                  placeholder="Rincian dimensi, material, sertifikasi..."
+                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
                   value={productForm.description}
-                  onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                   rows="4"
                   required
                 ></textarea>
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {editingProductId ? 'Simpan Edit' : 'Pasarkan Produk'}
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="w-full bg-primary hover:bg-primary-container text-on-primary py-2 rounded-lg font-bold text-sm transition-colors shadow-md">
+                  {editingProductId ? 'Simpan Edit' : 'Pasarkan Barang'}
                 </button>
                 {editingProductId && (
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary"
+                  <button
+                    type="button"
+                    className="bg-surface-container-high hover:bg-outline-variant/35 text-primary px-4 py-2 rounded-lg font-bold text-sm transition-all"
                     onClick={() => {
                       setEditingProductId(null);
                       setProductForm({ name: '', price: '', stock: '', description: '' });
@@ -1251,96 +1253,104 @@ function AppContent() {
   };
 
   const renderAdminOrders = () => {
-    // Seller: show orders that contain products from seller's store
-    // Admin: show all orders
-    const filteredOrders = currentUser.role === 'admin' 
-      ? orders 
+    const filteredOrders = currentUser.role === 'admin'
+      ? orders
       : orders.filter(o => o.storeIds.includes(currentUser.storeId));
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Daftar Pesanan Toko</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-          {currentUser.role === 'admin' ? 'Monitoring seluruh pesanan sistem' : `Daftar pesanan masuk untuk toko ${currentStore?.name}`}
-        </p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">
+            {currentUser.role === 'admin' ? 'Monitoring Semua Pesanan' : 'Kelola Order Masuk Toko'}
+          </h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            {currentUser.role === 'admin' ? 'Pemantauan alur transaksi global seapedia.' : `Pesanan logistik masuk untuk toko ${currentStore?.name}`}
+          </p>
+        </div>
 
         {filteredOrders.length === 0 ? (
-          <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-            <ClipboardList size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-            <p style={{ color: 'var(--text-secondary)' }}>Belum ada pesanan masuk.</p>
+          <div className="bg-surface-container-lowest rounded-xl p-12 text-center border border-outline-variant/30">
+            <span className="material-symbols-outlined text-outline text-5xl mb-4">pending_actions</span>
+            <p className="text-on-surface-variant font-medium text-lg">Belum ada order masuk.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {filteredOrders.map(order => (
-              <div key={order.id} className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '16px' }}>
-                  <div>
-                    <strong style={{ fontSize: '18px', marginRight: '12px' }}>{order.id}</strong>
-                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Buyer: {order.buyerName}</span>
-                  </div>
-                  <div>
-                    {order.status === 'UNPAID' && <span className="badge badge-unpaid">UNPAID (Pending Payment)</span>}
-                    {order.status === 'PAID' && <span className="badge badge-pending">PAID (Diproses)</span>}
-                    {order.status === 'SHIPPING' && <span className="badge badge-shipping">SHIPPING (Dalam Perjalanan)</span>}
-                    {order.status === 'DELIVERED' && <span className="badge badge-delivered">DELIVERED (Selesai)</span>}
-                    {order.status === 'CANCELLED' && <span className="badge badge-cancelled">CANCELLED (Batal)</span>}
-                  </div>
-                </div>
+          <div className="space-y-6">
+            {filteredOrders.map(order => {
+              const statusColors = {
+                'UNPAID': 'bg-amber-100 text-amber-800 border-amber-250',
+                'PAID': 'bg-blue-100 text-blue-800 border-blue-200',
+                'SHIPPING': 'bg-sky-100 text-sky-800 border-sky-200',
+                'DELIVERED': 'bg-green-100 text-green-800 border-green-200',
+                'CANCELLED': 'bg-red-100 text-red-800 border-red-200'
+              };
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px' }}>
-                  <div>
-                    <h4 style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>Barang dipesan:</h4>
-                    <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
-                      {order.items.map(item => (
-                        <li key={item.product.id} style={{ fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{item.product.name} (x{item.quantity})</span>
-                          <span>{formatRupiah(item.product.price * item.quantity)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>📍 <strong>Tujuan:</strong> {order.address}</p>
-                    {order.driverName && <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>🚚 <strong>Driver:</strong> {order.driverName}</p>}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: '1px solid var(--border-color)', paddingLeft: '24px' }}>
+              return (
+                <div key={order.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden shadow-sm">
+                  <div className="bg-slate-50 px-md py-4 border-b border-outline-variant/20 flex justify-between items-center">
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                        <span>Total Tagihan:</span>
-                        <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{formatRupiah(order.total)}</span>
+                      <strong className="text-primary text-body-md font-extrabold">{order.id}</strong>
+                      <span className="text-xs text-on-surface-variant block mt-0.5">Pemesan: {order.buyerName}</span>
+                    </div>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColors[order.status] || 'bg-slate-100 text-slate-800'}`}>
+                      {order.status}
+                    </span>
+                  </div>
+
+                  <div className="p-md grid grid-cols-1 lg:grid-cols-3 gap-lg">
+                    <div className="lg:col-span-2 space-y-4">
+                      <h4 className="font-label-md text-label-md text-primary">Barang Dipesan:</h4>
+                      <ul className="divide-y divide-outline-variant/20">
+                        {order.items.map(item => (
+                          <li key={item.product.id} className="py-2 flex justify-between text-body-md">
+                            <span>{item.product.name} (x{item.quantity})</span>
+                            <span className="font-bold text-primary">{formatRupiah(item.product.price * item.quantity)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="text-xs text-on-surface-variant">
+                        <p>📍 <strong>Alamat Kirim:</strong> {order.address}</p>
+                        {order.driverName && <p className="mt-1">🚚 <strong>Driver Kurir:</strong> {order.driverName}</p>}
                       </div>
                     </div>
 
-                    {/* Admin Actions */}
-                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {order.status === 'PAID' && (
-                        <button 
-                          className="btn btn-primary btn-sm"
-                          onClick={() => acceptOrderDriver(order.id, { id: 'u-4', name: 'Driver Satu' })}
-                        >
-                          Kirim Barang (Mulai Delivery)
-                        </button>
-                      )}
-                      {order.status === 'SHIPPING' && (
-                        <button 
-                          className="btn btn-success btn-sm"
-                          onClick={() => completeOrderDriver(order.id)}
-                        >
-                          Selesaikan Pengantaran (Delivered)
-                        </button>
-                      )}
-                      {(order.status === 'UNPAID' || order.status === 'PAID') && (
-                        <button 
-                          className="btn btn-danger btn-sm"
-                          onClick={() => cancelOrder(order.id, 'Dibatalkan oleh Penjual/Admin')}
-                        >
-                          Batalkan Pesanan
-                        </button>
-                      )}
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-outline-variant/20 flex flex-col justify-between">
+                      <div className="mb-4">
+                        <span className="text-xs text-on-surface-variant block mb-1">Total Tagihan:</span>
+                        <strong className="text-lg text-secondary font-bold">{formatRupiah(order.total)}</strong>
+                      </div>
+
+                      {/* Control buttons */}
+                      <div className="space-y-2 mt-auto">
+                        {order.status === 'PAID' && (
+                          <button
+                            className="w-full bg-primary hover:bg-primary-container text-on-primary py-2 rounded-lg font-bold text-xs transition-colors"
+                            onClick={() => acceptOrderDriver(order.id, { id: 'u-4', name: 'Driver Satu' })}
+                          >
+                            Kirim Barang (Assign Driver)
+                          </button>
+                        )}
+                        {order.status === 'SHIPPING' && (
+                          <button
+                            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold text-xs transition-colors"
+                            onClick={() => completeOrderDriver(order.id)}
+                          >
+                            Konfirmasi Sampai (Delivered)
+                          </button>
+                        )}
+                        {(order.status === 'UNPAID' || order.status === 'PAID') && (
+                          <button
+                            className="w-full bg-transparent hover:bg-red-50 text-red-600 border border-red-200 py-1.5 rounded-lg font-semibold text-xs transition-colors"
+                            onClick={() => cancelOrder(order.id, 'Dibatalkan oleh Penjual/Admin')}
+                          >
+                            Batalkan Pesanan
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -1348,53 +1358,54 @@ function AppContent() {
   };
 
   const renderAnalytics = () => {
-    // Seller or Admin
-    const storeOrders = currentUser.role === 'admin' 
+    const storeOrders = currentUser.role === 'admin'
       ? orders.filter(o => o.status !== 'CANCELLED')
       : orders.filter(o => o.storeIds.includes(currentUser.storeId) && o.status !== 'CANCELLED');
-      
+
     const totalSales = storeOrders.reduce((sum, o) => sum + (o.status !== 'UNPAID' ? o.total : 0), 0);
     const totalTransactions = storeOrders.length;
     const pendingOrders = storeOrders.filter(o => o.status === 'PAID' || o.status === 'SHIPPING').length;
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Analisis Toko</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Ringkasan performa finansial dan transaksi penjualan</p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Analisis Toko</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Statistik penjualan riil dan efektivitas transaksi.</p>
+        </div>
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-3" style={{ marginBottom: '32px' }}>
-          <div className="card">
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Total Pendapatan Bersih</span>
-            <h2 style={{ fontSize: '28px', color: 'var(--color-success)' }}>{formatRupiah(totalSales)}</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>*Hanya menghitung pesanan lunas</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-lg">
+          <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/30 shadow-sm">
+            <span className="text-xs text-on-surface-variant font-medium block mb-2">Total Penjualan Bersih</span>
+            <h2 className="text-2xl font-black text-green-600">{formatRupiah(totalSales)}</h2>
+            <p className="text-[10px] text-on-surface-variant/70 mt-2">*Hanya menghitung order yang telah lunas</p>
           </div>
-          <div className="card">
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Total Pesanan Sukses</span>
-            <h2 style={{ fontSize: '28px', color: 'var(--color-primary)' }}>{totalTransactions} Transaksi</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Menghitung pesanan yang diproses/selesai</p>
+          <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/30 shadow-sm">
+            <span className="text-xs text-on-surface-variant font-medium block mb-2">Transaksi Sukses</span>
+            <h2 className="text-2xl font-black text-secondary">{totalTransactions} Order</h2>
+            <p className="text-[10px] text-on-surface-variant/70 mt-2">Menghitung pesanan terbayar, dikirim, & sampai</p>
           </div>
-          <div className="card">
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Pesanan Aktif Diproses</span>
-            <h2 style={{ fontSize: '28px', color: 'var(--color-warning)' }}>{pendingOrders} Paket</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Sedang dalam tahap proses & pengiriman</p>
+          <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/30 shadow-sm">
+            <span className="text-xs text-on-surface-variant font-medium block mb-2">Order Aktif Diproses</span>
+            <h2 className="text-2xl font-black text-amber-600">{pendingOrders} Paket</h2>
+            <p className="text-[10px] text-on-surface-variant/70 mt-2">Sedang dalam proses pengantaran kurir</p>
           </div>
         </div>
 
-        {/* Sales log list */}
-        <div className="card">
-          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Daftar Penjualan Terakhir</h2>
+        {/* Recent logs */}
+        <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30">
+          <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">Log Penjualan Terakhir</h2>
           {storeOrders.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>Belum ada data penjualan.</p>
+            <p className="text-on-surface-variant text-center py-6">Belum ada aktivitas penjualan.</p>
           ) : (
-            <div className="table-list">
+            <div className="divide-y divide-outline-variant/15">
               {storeOrders.map(o => (
-                <div key={o.id} className="table-row">
+                <div key={o.id} className="py-3 flex justify-between items-center text-body-md">
                   <div>
-                    <strong>ID Transaksi: {o.id}</strong>
-                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>Buyer: {o.buyerName} | Status: {o.status}</span>
+                    <strong className="block text-primary font-bold">{o.id}</strong>
+                    <span className="text-xs text-on-surface-variant">Buyer: {o.buyerName} | Status: {o.status}</span>
                   </div>
-                  <strong>{formatRupiah(o.total)}</strong>
+                  <strong className="text-primary font-extrabold">{formatRupiah(o.total)}</strong>
                 </div>
               ))}
             </div>
@@ -1407,35 +1418,40 @@ function AppContent() {
   // --- DRIVER VIEWS ---
 
   const renderDriverJobs = () => {
-    // Show only orders in status PAID (jobs available to take) or currently assigned to this driver
     const availableJobs = orders.filter(o => o.status === 'PAID');
     const myJobs = orders.filter(o => o.status === 'SHIPPING' && o.driverId === currentUser.id);
 
     return (
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '8px' }}>Pekerjaan Pengantaran</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Ambil tugas pengiriman paket belanjaan pelanggan</p>
+        <div className="mb-lg">
+          <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Pengantaran Driver</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Terima pesanan logistik dari pelanggan dan kirim ke alamat tujuan.</p>
+        </div>
 
-        {/* Current Active Jobs */}
-        <div className="card" style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>📦 Pengantaran Aktif Anda ({myJobs.length})</h2>
+        {/* Active job */}
+        <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 mb-lg h-fit">
+          <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">
+            📦 Tugas Aktif Pengiriman ({myJobs.length})
+          </h2>
           {myJobs.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>Anda sedang tidak mengantar paket saat ini.</p>
+            <p className="text-on-surface-variant text-center py-6 font-medium">Anda tidak memiliki tugas pengiriman saat ini.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="space-y-4">
               {myJobs.map(job => (
-                <div key={job.id} className="card" style={{ background: 'rgba(14, 165, 233, 0.05)', borderColor: 'var(--color-secondary)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <strong>{job.id}</strong>
-                    <span className="badge badge-shipping">Dalam Perjalanan</span>
+                <div key={job.id} className="bg-sky-55/15 p-4 rounded-xl border border-sky-200">
+                  <div className="flex justify-between items-center mb-3">
+                    <strong className="text-primary font-bold text-body-md">{job.id}</strong>
+                    <span className="bg-sky-100 text-sky-800 border border-sky-200 text-xs px-2.5 py-1 rounded-full font-bold">SHIPPING</span>
                   </div>
-                  <p style={{ fontSize: '14px', marginBottom: '6px' }}>📍 <strong>Tujuan Alamat:</strong> {job.address}</p>
-                  <p style={{ fontSize: '14px', marginBottom: '16px' }}>👤 <strong>Nama Pelanggan:</strong> {job.buyerName}</p>
-                  <button 
-                    className="btn btn-success btn-sm"
+                  <div className="space-y-1 text-sm text-on-surface-variant mb-4">
+                    <p>📍 <strong>Alamat Tujuan:</strong> {job.address}</p>
+                    <p>👤 <strong>Penerima:</strong> {job.buyerName}</p>
+                  </div>
+                  <button
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg text-sm transition-colors shadow-md"
                     onClick={() => completeOrderDriver(job.id)}
                   >
-                    ✓ Konfirmasi Selesai Kirim
+                    ✓ Konfirmasi Selesai Kirim (Paket Sampai)
                   </button>
                 </div>
               ))}
@@ -1443,30 +1459,33 @@ function AppContent() {
           )}
         </div>
 
-        {/* Available Jobs list */}
-        <div className="card">
-          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>🚀 Pekerjaan Tersedia ({availableJobs.length})</h2>
+        {/* Available jobs */}
+        <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30">
+          <h2 className="font-title-lg text-title-lg text-primary mb-4 border-b border-outline-variant/20 pb-3">
+            🚀 Daftar Order Siap Diambil ({availableJobs.length})
+          </h2>
           {availableJobs.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>Belum ada pesanan yang siap diantar driver saat ini.</p>
+            <p className="text-on-surface-variant text-center py-6 font-medium">Belum ada order logistik yang siap diambil saat ini.</p>
           ) : (
-            <div className="table-list">
+            <div className="divide-y divide-outline-variant/20">
               {availableJobs.map(job => (
-                <div key={job.id} className="table-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <strong>Pesanan {job.id}</strong>
-                    <span style={{ fontSize: '13px', color: 'var(--color-success)', fontWeight: 600 }}>Fee Driver: Rp10.000</span>
+                <div key={job.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <strong className="block text-primary text-body-md font-bold">Order: {job.id}</strong>
+                    <div className="space-y-0.5 text-xs text-on-surface-variant mt-1">
+                      <p>📍 Alamat Kirim: {job.address}</p>
+                      <p>Pelanggan: {job.buyerName}</p>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                    <div>📍 <strong>Alamat Kirim:</strong> {job.address}</div>
-                    <div>👤 <strong>Pelanggan:</strong> {job.buyerName}</div>
+                  <div className="flex items-center gap-4 flex-shrink-0">
+                    <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded border border-green-200">Ongkir: Rp10.000</span>
+                    <button
+                      className="bg-primary hover:bg-primary-container text-on-primary text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+                      onClick={() => acceptOrderDriver(job.id, currentUser)}
+                    >
+                      Ambil Job
+                    </button>
                   </div>
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => acceptOrderDriver(job.id, currentUser)}
-                    style={{ alignSelf: 'flex-start' }}
-                  >
-                    Ambil Pekerjaan
-                  </button>
                 </div>
               ))}
             </div>
@@ -1476,173 +1495,703 @@ function AppContent() {
     );
   };
 
-  return (
-    <div className="app-container">
-      {/* Toast Notification */}
-      {notification && (
-        <div className="notification-toast">
-          <Activity size={18} color="var(--color-primary)" />
-          <span>{notification}</span>
-        </div>
-      )}
+  // --- MAIN APP RENDER ---
 
-      {/* Left Sidebar */}
-      <aside className="sidebar">
-        <div className="logo">
-          <ShoppingBag size={26} color="var(--color-primary)" />
-          <span>Bazaar CompFest</span>
+  // GUEST / GUEST LANDING VIEW (Mockup 2)
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background text-on-background bg-store-grid relative overflow-x-hidden">
+        {/* Background Animated Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-violet-400/10 blur-[130px] animate-blob-1"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[700px] h-[700px] rounded-full bg-blue-400/10 blur-[150px] animate-blob-2"></div>
         </div>
 
-        <nav>
-          <ul className="nav-links">
-            {getNavItems().map(item => (
-              <li key={item.id}>
-                <a 
-                  className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setSelectedProductId(null);
-                  }}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                  {item.badge > 0 && (
-                    <span style={{ 
-                      marginLeft: 'auto', 
-                      background: 'var(--color-primary)', 
-                      color: '#fff', 
-                      fontSize: '11px',
-                      padding: '2px 6px',
-                      borderRadius: '50%'
-                    }}>
-                      {item.badge}
-                    </span>
-                  )}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Sidebar Simulator / User Profile */}
-        <div className="sidebar-footer">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px' }}>
-              {currentUser.role === 'admin' ? <Shield size={20} color="var(--color-primary)" /> : <User size={20} />}
-              <div>
-                <strong style={{ display: 'block', fontSize: '14px' }}>{currentUser.name}</strong>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{currentUser.role}</span>
-              </div>
+        {/* Guest Header */}
+        <header className="bg-primary/95 backdrop-blur-md shadow-md sticky top-0 z-50 transition-all duration-300 relative z-10">
+          <div className="flex justify-between items-center h-[72px] px-md max-w-container-max mx-auto w-full">
+            <div className="flex items-center gap-sm">
+              <span className="text-title-lg font-title-lg font-bold text-on-primary tracking-tight">SEAPEDIA</span>
             </div>
 
-            {/* Persona Switcher for Quick Testing */}
-            <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Ganti Persona Simulasi:</label>
-              <select 
-                className="form-control" 
-                value={currentUser.username} 
-                onChange={(e) => {
-                  switchUser(e.target.value);
-                  setActiveTab(e.target.value === 'driver1' ? 'driver-jobs' : (e.target.value === 'seller1' ? 'inventory' : (e.target.value === 'admin' ? 'analytics' : 'shop')));
-                  setSelectedProductId(null);
-                }}
-                style={{ fontSize: '12px', padding: '6px 12px' }}
+            <nav className="hidden md:flex items-center gap-md">
+              <button onClick={() => setShowLoginModal(true)} className="font-label-md text-label-md text-on-primary opacity-80 hover:opacity-100 transition-opacity px-sm py-xs rounded-lg">
+                Marketplace
+              </button>
+              <button onClick={() => setShowLoginModal(true)} className="font-label-md text-label-md text-on-primary opacity-80 hover:opacity-100 transition-opacity px-sm py-xs rounded-lg">
+                Services
+              </button>
+              <button onClick={() => setShowLoginModal(true)} className="font-label-md text-label-md text-on-primary opacity-80 hover:opacity-100 transition-opacity px-sm py-xs rounded-lg">
+                Help
+              </button>
+            </nav>
+
+            <div className="flex items-center gap-md">
+              <button
+                onClick={() => { setIsSignUp(false); setShowLoginModal(true); }}
+                className="hidden md:flex font-label-md text-label-md text-white border border-white/30 px-4 py-1.5 rounded-lg hover:bg-white/10 transition-all"
               >
-                <option value="buyer1">Buyer Satu (Pelanggan)</option>
-                <option value="seller1">Seller Satu (Penjual)</option>
-                <option value="driver1">Driver Satu (Kurir)</option>
-                <option value="admin">System Admin</option>
-                <option value="multiuser">Multi-Role User</option>
-              </select>
-            </div>
-
-            <button className="btn btn-secondary btn-sm" onClick={logout} style={{ width: '100%' }}>
-              <LogOut size={16} /> Logout
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Panel Content Area */}
-      <main className="main-content">
-        <header className="top-bar">
-          <div>
-            <h4 style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Selamat datang kembali,</h4>
-            <h2>{currentUser.name}</h2>
-          </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            {(currentUser.role === 'buyer' || currentUser.role === 'buyer-seller' || currentUser.role === 'driver') && (
-              <div className="user-profile-badge">
-                <Wallet size={18} color="var(--color-success)" />
-                <span>Saldo Dompet: <strong>{formatRupiah(currentUser.walletBalance)}</strong></span>
-              </div>
-            )}
-            <div className="user-profile-badge">
-              <Clock size={18} color="var(--color-primary)" />
-              <span>Waktu: <strong>{simTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                Log In / Register
+              </button>
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="text-on-primary hover:bg-primary-container/50 p-2 rounded-full transition-colors flex items-center justify-center relative"
+                aria-label="shopping_cart"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>shopping_cart</span>
+              </button>
             </div>
           </div>
         </header>
 
-        {activeTab === 'shop' && renderShop()}
-        {activeTab === 'product-detail' && renderProductDetail()}
-        {activeTab === 'cart' && renderCart()}
-        {activeTab === 'checkout' && renderCheckout()}
-        {activeTab === 'orders' && renderOrders()}
-        {activeTab === 'wallet' && renderWallet()}
-        {activeTab === 'addresses' && renderAddresses()}
-        {activeTab === 'inventory' && renderInventory()}
-        {activeTab === 'admin-orders' && renderAdminOrders()}
-        {activeTab === 'analytics' && renderAnalytics()}
-        {activeTab === 'driver-jobs' && renderDriverJobs()}
-      </main>
+        {/* Guest Hero Section */}
+        <main className="flex-grow">
+          <section className="relative bg-surface-container-lowest overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-surface-container-lowest via-surface-container-low to-primary-fixed-dim/20 pointer-events-none"></div>
+            <div className="max-w-container-max mx-auto px-gutter py-xl md:py-[100px] grid grid-cols-1 lg:grid-cols-12 gap-lg items-center relative z-10">
 
-      {/* Simulation Clock Panel Widget */}
-      <div 
-        className="sim-clock-widget" 
+              {/* Hero Text */}
+              <div className="lg:col-span-5 flex flex-col items-start space-y-md">
+                <div className="inline-flex items-center gap-1 px-3 py-1 bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm rounded-full mb-1">
+                  <span className="material-symbols-outlined text-[16px]">public</span>
+                  Global Reach, Local Feel
+                </div>
+                <h1 className="font-display-lg text-4xl md:text-5xl text-primary font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-indigo-600 select-none">
+                  The All-in-One Marketplace for Everyone
+                </h1>
+                <p className="font-body-lg text-body-md text-on-surface-variant max-w-md">
+                  Connect with reliable global logistics and a vast consumer e-commerce ecosystem. Seamlessly switch between buying and selling with enterprise-grade reliability.
+                </p>
+                <div className="pt-2 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => { setIsSignUp(true); setShowLoginModal(true); }}
+                    className="bg-primary text-on-primary hover:bg-primary-container transition-colors font-semibold px-6 py-3 rounded-lg shadow-md flex items-center gap-2"
+                  >
+                    Join the Ecosystem
+                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  </button>
+                  <button
+                    onClick={() => { setIsSignUp(false); setShowLoginModal(true); }}
+                    className="bg-transparent text-secondary border border-secondary hover:bg-secondary/5 transition-colors font-semibold px-6 py-3 rounded-lg flex items-center"
+                  >
+                    Explore Marketplace
+                  </button>
+                </div>
+              </div>
+
+              {/* Hero Image / Design Graphic Placeholder */}
+              <div className="lg:col-span-7 relative h-[360px] md:h-[450px] w-full mt-lg lg:mt-0">
+                <div className="absolute inset-0 rounded-xl overflow-hidden shadow-2xl border border-outline-variant bg-white/80 backdrop-blur-sm bg-store-grid flex flex-col items-center justify-center p-8">
+                  <span className="material-symbols-outlined text-[96px] text-secondary/40 mb-4 animate-pulse">hub</span>
+                  <h3 className="text-xl font-bold text-primary mb-2">Simulasi Transaksi Logistik Terpadu</h3>
+                  <p className="text-sm text-on-surface-variant text-center max-w-md">
+                    Mengintegrasikan Akun Pembeli, Penjual (Toko), Driver Pengantar, dan Admin Sistem dalam satu database transaksi real-time.
+                  </p>
+                  <div className="mt-6 flex gap-3 text-xs bg-slate-200/50 px-4 py-2.5 rounded-full border border-slate-300">
+                    <span className="font-semibold text-primary">✓ Buyer</span>
+                    <span className="font-semibold text-primary">✓ Seller</span>
+                    <span className="font-semibold text-primary">✓ Driver</span>
+                    <span className="font-semibold text-primary">✓ Admin</span>
+                  </div>
+                </div>
+
+                {/* Floating Info Stats Widget */}
+                <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-md p-4 rounded-xl border border-surface-variant shadow-lg flex items-center gap-3 max-w-xs hidden md:flex">
+                  <div className="bg-secondary-fixed text-on-secondary-fixed p-2.5 rounded-lg flex items-center justify-center">
+                    <span className="material-symbols-outlined">package_2</span>
+                  </div>
+                  <div>
+                    <div className="font-bold text-lg text-primary">100% Digital</div>
+                    <div className="text-xs text-on-surface-variant">Real-Time Event Logs Clock</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Featured Categories Bento Grid */}
+          <section className="bg-surface py-xl">
+            <div className="max-w-container-max mx-auto px-gutter">
+              <div className="mb-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <h2 className="font-headline-lg text-2xl md:text-3xl text-primary font-bold mb-xs">Featured Categories</h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant">Discover the core pillars of the SEAPEDIA ecosystem.</p>
+                </div>
+                <button onClick={() => setShowLoginModal(true)} className="text-secondary font-semibold flex items-center gap-1 hover:underline group">
+                  View All Categories
+                  <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-md h-auto md:h-[420px]">
+                {/* Bento Item 1: Marketplace */}
+                <div
+                  onClick={() => setShowLoginModal(true)}
+                  className="md:col-span-2 relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer bg-slate-900 border border-outline-variant flex flex-col"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent z-10"></div>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-white/50 select-none">
+                    <span className="material-symbols-outlined text-white/10 text-9xl">storefront</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 p-8 w-full z-20">
+                    <div className="bg-white/20 backdrop-blur-sm w-fit p-1.5 rounded-lg mb-3 border border-white/10">
+                      <span className="material-symbols-outlined text-white text-[20px] block" style={{ fontVariationSettings: "'FILL' 1" }}>storefront</span>
+                    </div>
+                    <h3 className="font-headline-md text-2xl font-bold text-white mb-2">Marketplace Katalog</h3>
+                    <p className="text-sm text-white/80 max-w-md hidden md:block">Beli peti kemas grade ekspor, alat berat forklift, dan kebutuhan cargo dari supplier terverifikasi.</p>
+                  </div>
+                </div>
+
+                {/* Bento Stacked Side */}
+                <div className="grid grid-rows-2 gap-md h-full">
+                  {/* Bento Item 2: Services */}
+                  <div
+                    onClick={() => setShowLoginModal(true)}
+                    className="relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer bg-slate-800 border border-outline-variant flex flex-col justify-end p-6 text-white"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent z-10"></div>
+                    <span className="material-symbols-outlined text-white/5 text-8xl absolute top-4 right-4 select-none">handshake</span>
+                    <div className="relative z-20">
+                      <h3 className="font-title-lg text-lg font-bold mb-1 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[20px]">handshake</span>
+                        Mitra Services
+                      </h3>
+                      <p className="text-xs text-white/80">Hubungkan bisnis dengan penyedia cargo surveyor.</p>
+                    </div>
+                  </div>
+
+                  {/* Bento Item 3: Delivery */}
+                  <div
+                    onClick={() => setShowLoginModal(true)}
+                    className="relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer bg-slate-800 border border-outline-variant flex flex-col justify-end p-6 text-white"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent z-10"></div>
+                    <span className="material-symbols-outlined text-white/5 text-8xl absolute top-4 right-4 select-none">local_shipping</span>
+                    <div className="relative z-20">
+                      <h3 className="font-title-lg text-lg font-bold mb-1 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[20px]">local_shipping</span>
+                        Logistik Delivery
+                      </h3>
+                      <p className="text-xs text-white/80">Lacak pengantaran instan oleh driver terdaftar.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Reviews Section */}
+          <section className="bg-surface-container-low py-xl border-y border-outline-variant">
+            <div className="max-w-container-max mx-auto px-gutter">
+              <div className="text-center mb-lg">
+                <h2 className="font-headline-lg text-2xl md:text-3xl text-primary font-bold mb-xs">Trusted by Thousands</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant">See what our community has to say about the SEAPEDIA experience.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
+
+                {/* Review 1 */}
+                <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant flex flex-col justify-between h-full hover:-translate-y-1 transition-transform duration-300">
+                  <div>
+                    <div className="flex items-center gap-0.5 text-amber-500 mb-3">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      ))}
+                    </div>
+                    <p className="font-body-md text-sm text-on-surface italic mb-4">
+                      "Fitur pergantian persona multi-role sangat mempermudah saya menguji alur jual-beli barang secara instan tanpa perlu repot logout berulang kali!"
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
+                    <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold text-xs">A</div>
+                    <div>
+                      <p className="text-xs font-bold text-primary">Adit Pratama</p>
+                      <p className="text-[10px] text-on-surface-variant">QA Specialist</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Review 2 */}
+                <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant flex flex-col justify-between h-full hover:-translate-y-1 transition-transform duration-300">
+                  <div>
+                    <div className="flex items-center gap-0.5 text-amber-500 mb-3">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      ))}
+                    </div>
+                    <p className="font-body-md text-sm text-on-surface italic mb-4">
+                      "Simulation Engine Clock-nya bekerja dengan sangat baik. Menguji deadline pembayaran pesanan 2 jam berjalan lancar dengan memajukan jam simulasi."
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
+                    <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold text-xs">R</div>
+                    <div>
+                      <p className="text-xs font-bold text-primary">Rian D.</p>
+                      <p className="text-[10px] text-on-surface-variant">Frontend Developer</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Review 3 */}
+                <div className="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant flex flex-col justify-between h-full hover:-translate-y-1 transition-transform duration-300">
+                  <div>
+                    <div className="flex items-center gap-0.5 text-amber-500 mb-3">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      ))}
+                    </div>
+                    <p className="font-body-md text-sm text-on-surface italic mb-4">
+                      "Integrasi wallet history dan pemesanan driver kurir berfungsi 100%. Desain visual baru ini jauh lebih bersih dan sangat premium."
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
+                    <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold text-xs">M</div>
+                    <div>
+                      <p className="text-xs font-bold text-primary">Mega P.</p>
+                      <p className="text-[10px] text-on-surface-variant">Product Designer</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+        </main>
+
+        {/* Guest Footer */}
+        <footer className="bg-surface-container-low border-t border-outline-variant full-width mt-auto">
+          <div className="max-w-container-max mx-auto px-gutter py-12">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-outline-variant/20 pb-8 mb-8">
+              <div>
+                <span className="text-title-lg font-title-lg font-bold text-primary block">SEAPEDIA</span>
+                <p className="font-body-md text-sm text-on-surface-variant mt-2 max-w-sm">Empowering global logistics through a unified marketplace system.</p>
+              </div>
+              <div className="flex gap-4">
+                <button onClick={() => setShowLoginModal(true)} className="text-xs text-on-surface-variant hover:text-secondary font-semibold">Terms of Service</button>
+                <span className="text-slate-300">|</span>
+                <button onClick={() => setShowLoginModal(true)} className="text-xs text-on-surface-variant hover:text-secondary font-semibold">Privacy Policy</button>
+              </div>
+            </div>
+            <p className="text-xs text-on-surface-variant text-center">© 2026 SEAPEDIA Logistics Ecosystem. All rights reserved.</p>
+          </div>
+        </footer>
+
+        {/* Modal Auth Dialog */}
+        {showLoginModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white border border-outline-variant/30 rounded-xl p-6 max-w-md w-full shadow-2xl relative">
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="absolute top-4 right-4 text-on-surface-variant hover:bg-slate-100 p-1.5 rounded-full transition-colors flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+
+              <div className="text-center mb-6">
+                <h2 className="font-display-lg text-2xl font-black text-primary mb-1">
+                  {isSignUp ? 'Daftar Akun Baru' : 'Masuk ke SEAPEDIA'}
+                </h2>
+                <p className="text-xs text-on-surface-variant">Simulasi Platform Logistik Terintegrasi</p>
+              </div>
+
+              {/* Login/Register Selector */}
+              <div className="flex bg-slate-100 rounded-lg p-1 mb-5 border border-outline-variant/20">
+                <button
+                  onClick={() => setIsSignUp(false)}
+                  className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${!isSignUp ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'}`}
+                >
+                  Masuk Sesi
+                </button>
+                <button
+                  onClick={() => setIsSignUp(true)}
+                  className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${isSignUp ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'}`}
+                >
+                  Daftar Baru
+                </button>
+              </div>
+
+              {/* Form Input */}
+              <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+                {isSignUp && (
+                  <>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Nama Lengkap</label>
+                      <input
+                        type="text"
+                        placeholder="Nama lengkap..."
+                        className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 text-xs text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Email</label>
+                      <input
+                        type="email"
+                        placeholder="user@domain.com"
+                        className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 text-xs text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Username</label>
+                  <input
+                    type="text"
+                    placeholder="Username..."
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 text-xs text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                    value={authUsername}
+                    onChange={(e) => setAuthUsername(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Password</label>
+                  <input
+                    type="password"
+                    placeholder="Password..."
+                    className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 text-xs text-primary focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {isSignUp && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-on-surface-variant mb-1.5">Peran Akun (Multi-Role)</label>
+                    <div className="flex gap-2">
+                      {['buyer', 'seller', 'driver'].map(role => {
+                        const active = authRoles.includes(role);
+                        return (
+                          <button
+                            type="button"
+                            key={role}
+                            onClick={() => handleRoleToggle(role)}
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${active ? 'bg-primary text-white border-primary shadow-sm' : 'bg-transparent text-on-surface-variant border-outline-variant'}`}
+                          >
+                            {role === 'buyer' ? 'Pembeli' : role === 'seller' ? 'Penjual' : 'Kurir'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-secondary hover:bg-secondary-container text-white py-2.5 rounded-lg font-bold text-xs transition-colors shadow-md mt-2"
+                >
+                  {isSignUp ? 'Daftar Sekarang' : 'Masuk ke Aplikasi'}
+                </button>
+              </form>
+
+              {/* Instant Demo Accounts Selector */}
+              <div className="mt-5 pt-4 border-t border-outline-variant/20">
+                <span className="text-[10px] text-on-surface-variant/80 font-bold tracking-wider uppercase block text-center mb-2.5">
+                  Pilih Akun Demo Instan
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {users.map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => handleDemoLogin(u)}
+                      className="bg-slate-50 hover:bg-secondary-fixed/30 border border-outline-variant/30 rounded-lg p-2 text-left transition-all flex flex-col"
+                    >
+                      <strong className="text-[11px] text-primary leading-tight font-extrabold">{u.name}</strong>
+                      <span className="text-[9px] text-on-surface-variant font-medium mt-0.5 uppercase tracking-wide">
+                        {u.role === 'buyer-seller' ? 'Multi-Role' : u.role === 'driver' ? 'Kurir' : u.role === 'buyer' ? 'Pembeli' : u.role === 'seller' ? 'Penjual' : u.role}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+      </div>
+    );
+  }
+
+  // --- LOGGED IN DASHBOARD VIEW ---
+  return (
+    <div className="min-h-screen flex flex-col bg-background text-on-background bg-store-grid relative overflow-x-hidden">
+      {/* Background Animated Blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-20 left-[-10%] w-[500px] h-[500px] rounded-full bg-violet-400/5 blur-[120px] animate-blob-1"></div>
+        <div className="absolute bottom-20 right-[-10%] w-[600px] h-[600px] rounded-full bg-blue-400/5 blur-[150px] animate-blob-2"></div>
+      </div>
+
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed top-6 right-6 bg-slate-900 border border-secondary text-white rounded-xl px-5 py-3.5 shadow-2xl z-[9999] flex items-center gap-3 animate-bounce">
+          <span className="material-symbols-outlined text-green-400">notifications_active</span>
+          <span className="text-sm font-semibold">{notification}</span>
+        </div>
+      )}
+
+      {/* Top Header */}
+      <header className="bg-primary sticky top-0 z-40 transition-all duration-300">
+        <div className="flex justify-between items-center h-[72px] px-6 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-sm">
+            <span className="text-title-lg font-title-lg font-bold text-on-primary tracking-tight">SEAPEDIA</span>
+            <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded border border-white/15 ml-2 hidden sm:inline-block">Logged In</span>
+          </div>
+
+          {/* Quick Info & Actions */}
+          <div className="flex items-center gap-4">
+            {/* Wallet Info */}
+            {currentUser.role !== 'admin' && (
+              <div className="hidden sm:flex items-center bg-white/10 text-green-400 px-3 py-1.5 rounded-lg border border-green-500/20 text-xs gap-1.5">
+                <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+                <span>Saldo: <strong className="text-white font-extrabold">{formatRupiah(currentUser.walletBalance)}</strong></span>
+              </div>
+            )}
+
+            {/* Sim Clock Display */}
+            <div className="hidden sm:flex items-center bg-white/10 text-white/80 px-3 py-1.5 rounded-lg border border-white/10 text-xs gap-1.5">
+              <span className="material-symbols-outlined text-[16px]">schedule</span>
+              <span>Waktu: <strong className="text-white font-extrabold">{simTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</strong></span>
+            </div>
+
+            {/* Switch User dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowPersonaDropdown(!showPersonaDropdown)}
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 transition-all rounded-lg px-3 py-2 border border-white/15 text-white text-xs font-semibold"
+              >
+                <span className="material-symbols-outlined text-[16px] text-white/70">switch_account</span>
+                <span>
+                  {currentUser.username === 'buyer1' && 'Pembeli (Buyer)'}
+                  {currentUser.username === 'seller1' && 'Penjual (Seller)'}
+                  {currentUser.username === 'driver1' && 'Kurir (Driver)'}
+                  {currentUser.username === 'admin' && 'System Admin'}
+                  {currentUser.username === 'multiuser' && 'Multi-Role User'}
+                </span>
+                <span className={`material-symbols-outlined text-[14px] transition-transform duration-200 ${showPersonaDropdown ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+              
+              {/* Dropdown Menu Box */}
+              {showPersonaDropdown && (
+                <>
+                  {/* Backdrop click close */}
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPersonaDropdown(false)} />
+                  
+                  {/* Options list */}
+                  <div className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant/35 rounded-xl shadow-xl py-1.5 z-50 animate-fade-in text-primary">
+                    {[
+                      { username: 'buyer1', label: 'Buyer Satu (Pembeli)', role: 'Buyer', icon: 'person' },
+                      { username: 'seller1', label: 'Seller Satu (Penjual)', role: 'Seller', icon: 'storefront' },
+                      { username: 'driver1', label: 'Driver Satu (Kurir)', role: 'Driver', icon: 'local_shipping' },
+                      { username: 'admin', label: 'System Admin', role: 'Admin', icon: 'shield' },
+                      { username: 'multiuser', label: 'Multi-Role User', role: 'Buyer + Seller', icon: 'group' }
+                    ].map((item) => (
+                      <button
+                        type="button"
+                        key={item.username}
+                        onClick={() => {
+                          switchUser(item.username);
+                          const selectedUser = users.find(u => u.username === item.username);
+                          setDefaultTab(selectedUser?.role || 'buyer');
+                          setShowPersonaDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2.5 transition-colors hover:bg-slate-50 ${currentUser.username === item.username ? 'bg-secondary-fixed/30 text-secondary font-bold' : 'text-on-surface-variant'}`}
+                      >
+                        <span className="material-symbols-outlined text-[16px] opacity-70">{item.icon}</span>
+                        <div className="flex-1">
+                          <div className="font-semibold text-primary">{item.label}</div>
+                          <div className="text-[9px] text-on-surface-variant/80 font-medium uppercase mt-0.5">{item.role}</div>
+                        </div>
+                        {currentUser.username === item.username && (
+                          <span className="material-symbols-outlined text-secondary text-[16px]">check</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="text-white/80 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-colors flex items-center justify-center"
+              title="Logout Sesi"
+            >
+              <span className="material-symbols-outlined text-[20px]">logout</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Dashboard Layout */}
+      <div className="flex-grow flex w-full">
+
+        {/* Left Navigation Sidebar */}
+        <aside className={`transition-all duration-300 ${sidebarCollapsed ? 'w-20 pr-2' : 'w-64 pr-md'} flex-shrink-0 border-r border-outline-variant/30 hidden md:block py-lg`}>
+          <div className="sticky top-24 space-y-6">
+
+            {/* Tombol Toggle untuk Expand/Collapse */}
+            <div className={`flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} px-2`}>
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="text-on-surface-variant hover:bg-surface-container-high p-1.5 rounded-lg transition-colors flex items-center justify-center border border-outline-variant/20"
+                title={sidebarCollapsed ? "Perlebar Sidebar" : "Menciutkan Sidebar"}
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {sidebarCollapsed ? 'menu' : 'menu_open'}
+                </span>
+              </button>
+            </div>
+
+            {/* User Profile Overview */}
+            <div className="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold flex-shrink-0">
+                {currentUser.name.substring(0, 2).toUpperCase()}
+              </div>
+
+              {/* Sembunyikan detail user jika sidebar sedang mengecil */}
+              {!sidebarCollapsed && (
+                <div className="overflow-hidden animate-fade-in">
+                  <h4 className="font-bold text-primary text-sm truncate leading-tight">{currentUser.name}</h4>
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider block mt-0.5 truncate">{currentUser.role}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Nav tabs list */}
+            <nav className="space-y-1">
+              {getNavItems().map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setSelectedProductId(null);
+                  }}
+                  className={`relative w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center p-2.5' : 'px-4 py-2.5'} rounded-lg text-sm font-semibold transition-all ${activeTab === item.id ? 'bg-secondary-fixed text-on-secondary-fixed-variant' : 'text-on-surface-variant hover:bg-surface-container-high/60 hover:text-primary'}`}
+                  title={sidebarCollapsed ? item.label : ""}
+                >
+                  <span className="material-symbols-outlined text-[20px] flex-shrink-0">{item.icon}</span>
+
+                  {/* Tampilkan label teks hanya jika sidebar terbuka */}
+                  {!sidebarCollapsed && (
+                    <span className="flex-grow text-left truncate">{item.label}</span>
+                  )}
+
+                  {/* Atur Badge agar tetap presisi */}
+                  {item.badge > 0 && (
+                    <span className={`${sidebarCollapsed ? 'absolute top-1 right-1 px-1 py-0.5 text-[8px] leading-none' : 'ml-auto px-2 py-0.5 text-[10px]'} bg-primary text-white font-bold rounded-full`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </aside>
+
+        {/* Dashboard Main Content Panel */}
+        <main className="flex-1 py-lg px-8 min-w-0 relative z-10">
+          {/* Welcome Banner */}
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-primary via-slate-900 to-primary border border-white/10 text-white shadow-xl relative overflow-hidden flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="absolute right-0 top-0 w-64 h-64 bg-secondary/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute left-1/3 top-[-50%] w-48 h-48 bg-violet-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="relative z-10">
+              <span className="text-[9px] text-green-400 font-extrabold uppercase tracking-widest bg-green-950/40 border border-green-800/30 px-2 py-0.5 rounded-md inline-block mb-2">SEAPEDIA PORTAL</span>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none">Selamat datang kembali, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-blue-200">{currentUser.name}</span>!</h1>
+              <p className="text-xs text-white/70 mt-2 font-medium leading-relaxed">Simulasikan ekosistem logistik peti kemas, kurir pengiriman instan, dan alur pembayaran digital terpadu.</p>
+            </div>
+            
+            {currentUser.role !== 'admin' && (
+              <div className="bg-white/10 border border-white/15 px-4 py-2.5 rounded-xl backdrop-blur-sm self-start sm:self-auto relative z-10 flex items-center gap-2.5 flex-shrink-0">
+                <span className="material-symbols-outlined text-green-400 text-[20px]">payments</span>
+                <div>
+                  <span className="text-[10px] text-white/60 block leading-none mb-1 font-semibold">Saldo Dompet Anda</span>
+                  <strong className="text-sm font-extrabold text-white block leading-none">{formatRupiah(currentUser.walletBalance)}</strong>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {activeTab === 'shop' && renderShop()}
+          {activeTab === 'product-detail' && renderProductDetail()}
+          {activeTab === 'cart' && renderCart()}
+          {activeTab === 'checkout' && renderCheckout()}
+          {activeTab === 'orders' && renderOrders()}
+          {activeTab === 'wallet' && renderWallet()}
+          {activeTab === 'addresses' && renderAddresses()}
+          {activeTab === 'inventory' && renderInventory()}
+          {activeTab === 'admin-orders' && renderAdminOrders()}
+          {activeTab === 'analytics' && renderAnalytics()}
+          {activeTab === 'driver-jobs' && renderDriverJobs()}
+        </main>
+      </div>
+
+      {/* Floating Simulation Engine clock (Widget 13) */}
+      <div
+        className="fixed bottom-6 right-6 w-80 bg-primary/95 text-white border border-secondary rounded-xl shadow-2xl z-50 backdrop-blur-md transition-all duration-300 overflow-hidden"
         style={{ transform: clockCollapsed ? 'translateY(calc(100% - 48px))' : 'translateY(0)' }}
       >
-        <div className="sim-clock-header" style={{ cursor: 'pointer' }} onClick={() => setClockCollapsed(!clockCollapsed)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} color="var(--color-primary)" />
-            <strong style={{ fontSize: '13px' }}>Simulation Engine Clock</strong>
+        {/* Widget Header */}
+        <div
+          onClick={() => setClockCollapsed(!clockCollapsed)}
+          className="bg-slate-900 px-4 py-3 flex justify-between items-center cursor-pointer border-b border-white/10 hover:bg-slate-850"
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-green-400 text-[18px] animate-pulse">schedule</span>
+            <strong className="text-xs font-bold uppercase tracking-wider">Simulation Clock</strong>
           </div>
-          <span style={{ fontSize: '12px' }}>{clockCollapsed ? '▲ Buka' : '▼ Tutup'}</span>
+          <span className="text-xs font-semibold opacity-75">{clockCollapsed ? '▲ Buka' : '▼ Tutup'}</span>
         </div>
-        <div className="sim-clock-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+
+        {/* Widget Body */}
+        <div className="p-4 space-y-4">
+          <div className="flex justify-between items-center">
             <div>
-              <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)' }}>Hari Simulasi</span>
-              <strong style={{ fontSize: '14px' }}>{simTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+              <span className="text-[10px] opacity-60 block">Hari Simulasi</span>
+              <strong className="text-xs font-bold">
+                {simTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </strong>
             </div>
-            <div>
-              <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)' }}>Jam</span>
-              <strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>{simTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</strong>
+            <div className="text-right">
+              <span className="text-[10px] opacity-60 block">Sim Jam</span>
+              <strong className="text-sm font-extrabold text-green-400">
+                {simTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </strong>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              className="btn btn-primary btn-sm" 
+          <div className="flex gap-2">
+            <button
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-lg text-xs transition-colors border border-white/10"
               onClick={() => advanceTime(1)}
-              style={{ flex: 1, padding: '8px' }}
             >
               +1 Jam
             </button>
-            <button 
-              className="btn btn-secondary btn-sm" 
+            <button
+              className="flex-1 bg-secondary hover:bg-secondary-container text-white font-bold py-2 rounded-lg text-xs transition-colors shadow"
               onClick={() => advanceTime(24)}
-              style={{ flex: 1, padding: '8px' }}
             >
               +24 Jam
             </button>
           </div>
 
-          <div style={{ marginTop: '12px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Simulation Event Log:</span>
-            <div className="sim-logs">
+          {/* Logs console */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Simulation Engine Logs:</span>
+            <div className="h-28 overflow-y-auto bg-black/40 rounded-lg p-2.5 font-mono text-[9px] text-green-300 border border-white/5 space-y-1">
               {simLogs.map((log, idx) => (
-                <div key={idx} className="sim-log-item">
+                <div key={idx} className="leading-normal break-all">
                   {log}
                 </div>
               ))}
@@ -1650,6 +2199,7 @@ function AppContent() {
           </div>
         </div>
       </div>
+
     </div>
   );
 }
